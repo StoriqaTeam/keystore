@@ -1,12 +1,7 @@
-use diesel::deserialize::FromSqlRow;
 use diesel::deserialize::{self, FromSql};
 use diesel::pg::Pg;
-use diesel::row::Row;
 use diesel::serialize::{self, Output, ToSql};
 use diesel::sql_types::{Uuid as SqlUuid, VarChar};
-use diesel::Queryable;
-use prelude::*;
-use std::error::Error as StdError;
 use std::fmt;
 use std::fmt::{Debug, Display};
 use std::io::Write;

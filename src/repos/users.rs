@@ -1,6 +1,5 @@
 use super::error::*;
 use super::repo::Repo;
-use diesel::Queryable;
 use models::*;
 use prelude::*;
 use schema::users::dsl::*;

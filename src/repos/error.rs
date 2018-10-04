@@ -1,8 +1,6 @@
 use failure::{Backtrace, Context, Fail};
-use services::ErrorKind as ServiceErrorKind;
 use std::fmt;
 use std::fmt::Display;
-use validator::ValidationErrors;
 
 #[derive(Debug)]
 pub struct Error {
