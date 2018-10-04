@@ -1,6 +1,7 @@
 extern crate futures;
 #[macro_use]
 extern crate failure;
+#[macro_use]
 extern crate diesel;
 extern crate futures_cpupool;
 extern crate hyper;
@@ -22,6 +23,7 @@ extern crate validator_derive;
 extern crate validator;
 #[macro_use]
 extern crate sentry;
+extern crate regex;
 extern crate uuid;
 
 #[macro_use]
@@ -30,6 +32,7 @@ mod api;
 mod config;
 mod models;
 mod prelude;
+mod schema;
 mod sentry_integration;
 mod services;
 mod utils;

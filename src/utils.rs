@@ -17,7 +17,7 @@ pub fn format_error<E: Fail>(error: &E) -> String {
         result.push_str(&format!("{}\n", err));
     }
     if let Some(bt) = error.backtrace() {
-        let regexp = regex::Regex::new("payments_lib").unwrap();
+        let regexp = regex::Regex::new("keystore_lib").unwrap();
         let bt = format!("{}", bt);
         let lines: Vec<&str> = bt.split("\n").skip(1).collect();
         if lines.len() > 0 {
