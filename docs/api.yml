@@ -1,0 +1,241 @@
+openapi: 3.0.0
+servers:
+  - url: 'https://keystore.stq.cloud/v1'
+  - url: 'http://keystore.stq.cloud/v1'
+info:
+  description: Private keys, transactions
+  version: "1.0.0"
+  title: Accounts core
+  contact:
+    email: a.karasev@storiqa.com
+tags:
+  - name: keys
+    description: Managements of keys
+  - name: transactions
+    description: Managements of transactions
+paths:
+  /keys:
+    get:
+      summary: Returns list of existing adresses
+      description: You need to be authenticated to use this method.
+      security:
+        - Bearer: []
+      tags:
+        - keys
+      parameters:
+        - $ref: '#/components/parameters/offsetParam'
+        - $ref: '#/components/parameters/limitParam'
+      responses:
+        200:
+          description: Ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BlockchainAddress'
+
+    post:
+      summary: Creates a new private key
+      description: You need to be authenticated to use this method.
+      security:
+        - Bearer: []
+      tags:
+        - keys
+      responses:
+        200:
+          description: Ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BlockchainAddress'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KeyCreateInput'
+
+  /transactions:
+    post:
+      summary: Prepares and Signs a transaction
+      description: You need to be authenticated to use this method.
+      security:
+        - Bearer: []
+      tags:
+        - transactions
+      responses:
+        200:
+          description: Ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionCreateInput'
+
+
+components:
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            description: Error that comes with 404 status
+            properties:
+              code:
+                type: string
+                example: 404
+
+              description:
+                type: string
+                example: Not found
+
+    BadRequest:
+      description: Most likely malformed json (this includes violating schema in terms of required fields, but not validations)
+      content:
+        application/json:
+          schema:
+            type: object
+            description: Error that comes with 400 status
+            properties:
+
+              description:
+                type: string
+                example: Bad request
+    Unauthorized:
+      description: Unauthorized to perform action
+      content:
+        application/json:
+          schema:
+            type: object
+            description: Error that comes with 401 status
+            properties:
+
+              description:
+                type: string
+                example: Unauthorized
+    UnprocessableEntity:
+      description: Json object matched schema, but didn't pass validations
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationErrors'
+    Internal:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            description: Error that comes with 500 status
+            properties:
+              description:
+                type: string
+                example: Internal server error
+  schemas:
+    ValidationErrors:
+      type: array
+      items:
+        type: object
+        properties:
+          email:
+            type: array
+            description: Field name
+            items:
+              type: object
+              properties:
+                code:
+                  type: string
+                  description: Validator name
+                  example: email
+                message:
+                  type: string
+                  description: Validation message
+                  example: Invalid email format
+          password:
+            type: array
+            description: Field name
+            items:
+              type: object
+              properties:
+                code:
+                  type: string
+                  description: Validator name
+                  example: length
+                message:
+                  type: string
+                  description: Validation message
+                  example: Length must be greater than 8
+            example:
+              -
+                code: length
+                message: Length must be greater than 8
+              -
+                code: length
+                message: Length must be less than 16
+
+    KeyCreateInput:
+      type: object
+      properties:
+        currency:
+          $ref: '#/components/schemas/Currency'
+    TransactionCreateInput:
+      type: object
+      properties:
+        from:
+          $ref: '#/components/schemas/BlockchainAddress'
+        to:
+          $ref: '#/components/schemas/BlockchainAddress'
+        currency:
+          $ref: '#/components/schemas/Currency'
+    Transaction:
+      type: string
+      description: Base64 encoded binary data
+      example: "ugfdoinoac374noaiw75caowie7ao745b="
+    Currency:
+      type: string
+      description: Coinmarketcap symbol in CAPS [source](https://coinmarketcap.com/)
+      example: ETH
+    BlockchainAddress:
+      type: object
+      required:
+        - currency
+        - address
+      properties:
+        currency:
+          $ref: '#/components/schemas/Currency'
+        address:
+          type: string
+          example: 0xjlgdkfg8dfklg7dflg
+  securitySchemes:
+    Bearer:
+      type: apiKey
+      name: Authorization
+      in: header
+  parameters:
+    offsetParam:
+      in: query
+      name: offset
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+      description: The number of items to skip before starting to collect the result set.
+    limitParam:
+      in: query
+      name: limit
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 20
