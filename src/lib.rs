@@ -32,6 +32,7 @@ mod api;
 mod config;
 mod models;
 mod prelude;
+mod repos;
 mod schema;
 mod sentry_integration;
 mod services;

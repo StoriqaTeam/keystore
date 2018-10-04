@@ -10,7 +10,7 @@ pub struct Error {
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Eq, Fail)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Fail)]
 pub enum ErrorKind {
     #[fail(display = "database error - internal")]
     Internal,
