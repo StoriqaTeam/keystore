@@ -1,0 +1,38 @@
+version: "3"
+
+volumes:
+  bundle-cache:
+  keystore-postgres-data:
+networks:
+  keystore:
+
+services:
+  keystore:
+    build: .
+    image: keystore
+    command: ["bash", "-c", "rm tmp/pids/server.pid; bundle; bundle exec rails s"]
+    environment:
+      - DATABASE_URL=postgres://keystore:keystore@db/keystore
+    volumes:
+      - ..:/app
+      - bundle-cache:/usr/local/bundle
+    ports:
+      - 3000:3000
+    networks:
+      - keystore
+    depends_on:
+      - db
+
+  db:
+    image: postgres:9.6.1
+    environment:
+      - POSTGRES_USER=keystore
+      - POSTGRES_PASSWORD=keystore
+      - POSTGRES_DB=keystore
+    volumes:
+      - keystore-postgres-data:/var/lib/postgresql/data
+      - .:/app
+    networks:
+      - keystore
+    ports:
+      - 5432:5432
