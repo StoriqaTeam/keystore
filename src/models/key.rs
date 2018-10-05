@@ -8,7 +8,7 @@ use super::currency::Currency;
 use super::user::UserId;
 use schema::keys;
 
-#[derive(Debug, FromSqlRow, AsExpression, Clone)]
+#[derive(Debug, Serialize, Deserialize, FromSqlRow, AsExpression, Clone)]
 #[sql_type = "SqlUuid"]
 pub struct KeyId(Uuid);
 derive_newtype_sql!(key_id, SqlUuid, KeyId, KeyId);
@@ -25,7 +25,7 @@ impl PrivateKey {
     }
 }
 
-#[derive(Debug, FromSqlRow, AsExpression, Clone)]
+#[derive(Debug, Serialize, Deserialize, FromSqlRow, AsExpression, Clone)]
 #[sql_type = "VarChar"]
 pub struct BlockChainAddress(String);
 derive_newtype_sql!(blockchain_address, VarChar, BlockChainAddress, BlockChainAddress);
@@ -38,21 +38,21 @@ impl BlockChainAddress {
 
 #[derive(Debug, Queryable, Clone)]
 pub struct Key {
-    id: KeyId,
-    private_key: PrivateKey,
-    blockchain_address: BlockChainAddress,
-    currency: Currency,
-    owner_id: UserId,
-    created_at: SystemTime,
-    updated_at: SystemTime,
+    pub id: KeyId,
+    pub private_key: PrivateKey,
+    pub blockchain_address: BlockChainAddress,
+    pub currency: Currency,
+    pub owner_id: UserId,
+    pub created_at: SystemTime,
+    pub updated_at: SystemTime,
 }
 
 #[derive(Debug, Queryable, Insertable, Clone)]
 #[table_name = "keys"]
 pub struct NewKey {
-    id: KeyId,
-    private_key: PrivateKey,
-    blockchain_address: BlockChainAddress,
-    currency: Currency,
-    owner_id: UserId,
+    pub id: KeyId,
+    pub private_key: PrivateKey,
+    pub blockchain_address: BlockChainAddress,
+    pub currency: Currency,
+    pub owner_id: UserId,
 }

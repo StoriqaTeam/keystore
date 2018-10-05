@@ -1,31 +1,33 @@
-extern crate futures;
 #[macro_use]
 extern crate failure;
 #[macro_use]
 extern crate diesel;
-extern crate futures_cpupool;
-extern crate hyper;
-extern crate r2d2;
-extern crate serde;
-extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
-extern crate config as config_crate;
 #[macro_use]
 extern crate http_router;
-extern crate hyper_tls;
 #[macro_use]
 extern crate validator_derive;
-extern crate validator;
 #[macro_use]
 extern crate sentry;
+
+extern crate config as config_crate;
+extern crate futures;
+extern crate futures_cpupool;
+extern crate hyper;
+extern crate hyper_tls;
+extern crate r2d2;
 extern crate rand;
 extern crate regex;
+extern crate serde;
+extern crate serde_json;
+extern crate serde_qs;
 extern crate uuid;
+extern crate validator;
 
 #[macro_use]
 mod macros;

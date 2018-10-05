@@ -1,3 +1,4 @@
+use super::super::error::*;
 use super::super::requests::*;
 use super::super::responses::*;
 use super::super::utils::{parse_body, response_with_model};
@@ -5,37 +6,60 @@ use super::Context;
 use super::ControllerFuture;
 use failure::Fail;
 use futures::prelude::*;
+use prelude::*;
+use serde_qs;
 
 pub fn get_keys(ctx: &Context) -> ControllerFuture {
-    unimplemented!()
-    // let users_service = ctx.users_service.clone();
-    // Box::new(
-    //     parse_body::<PostSessionsRequest>(ctx.body.clone())
-    //         .and_then(move |input| {
-    //             let input_clone = input.clone();
-    //             users_service
-    //                 .get_jwt(input.email, input.password)
-    //                 .map_err(ectx!(catch => input_clone))
-    //         }).and_then(|jwt| {
-    //             let model = PostSessionsResponse { token: jwt };
-    //             response_with_model(&model)
-    //         }),
-    // )
+    let keys_service = ctx.keys_service.clone();
+    let maybe_token = ctx.get_auth_token();
+    let path_and_query = ctx.uri.path_and_query();
+    let path_and_query_clone = ctx.uri.path_and_query();
+    Box::new(
+        ctx.uri
+            .query()
+            .ok_or(ectx!(err ErrorContext::RequestMissingQuery, ErrorKind::BadRequest => path_and_query))
+            .and_then(|query| {
+                serde_qs::from_str::<GetKeysParams>(query).map_err(|e| {
+                    let e = format_err!("{}", e);
+                    ectx!(err e, ErrorContext::RequestQueryParams, ErrorKind::BadRequest => path_and_query_clone)
+                })
+            }).into_future()
+            .and_then(move |input| {
+                let input_clone = input.clone();
+                keys_service
+                    .list(maybe_token, input.offset, input.limit)
+                    .map_err(ectx!(convert => input_clone))
+            }).and_then(|keys| {
+                let keys: Vec<KeyResponse> = keys
+                    .iter()
+                    .map(|key| KeyResponse {
+                        blockchain_address: key.blockchain_address.clone(),
+                        currency: key.currency,
+                    }).collect();
+                response_with_model(&keys)
+            }),
+    )
 }
 
 pub fn post_keys(ctx: &Context) -> ControllerFuture {
     unimplemented!()
-    // let users_service = ctx.users_service.clone();
+    // let keys_service = ctx.keys_service.clone();
+    // let maybe_token = ctx.get_auth_token();
     // Box::new(
-    //     parse_body::<PostSessionsOauthRequest>(ctx.body.clone())
+    //     parse_body::<PostKeysRequest>(ctx.body.clone())
     //         .and_then(move |input| {
     //             let input_clone = input.clone();
-    //             users_service
-    //                 .get_jwt_by_oauth(input.oauth_token, input.oauth_provider)
-    //                 .map_err(ectx!(catch => input_clone))
-    //         }).and_then(|jwt| {
-    //             let model = PostSessionsResponse { token: jwt };
-    //             response_with_model(&model)
+    //             keys_service
+    //                 .list(maybe_token, input.offset, input.limit)
+    //                 .map_err(ectx!(convert => input_clone))
+    //         }).and_then(|keys| {
+    //             let keys: Vec<KeyResponse> = keys
+    //                 .iter()
+    //                 .map(|key| KeyResponse {
+    //                     address: key.address,
+    //                     currency: key.currency,
+    //                 }).collect();
+    //             response_with_model(&keys)
     //         }),
     // )
 }

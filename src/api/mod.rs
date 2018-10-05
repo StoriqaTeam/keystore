@@ -88,19 +88,19 @@ impl Service for ApiService {
                         _ => not_found,
                     };
 
-                    let auth_service = Arc::new(AuthServiceImpl {
-                        db_pool: db_pool.clone(),
-                        thread_pool: thread_pool.clone(),
-                        users_repo_factory: Arc::new(create_users_repo),
-                    });
+                    let auth_service = Arc::new(AuthServiceImpl::new(
+                        db_pool.clone(),
+                        thread_pool.clone(),
+                        Arc::new(create_users_repo),
+                    ));
                     let key_generator = Arc::new(KeyGeneratorImpl);
-                    let keys_service = Arc::new(KeysServiceImpl {
-                        db_pool: db_pool.clone(),
-                        thread_pool: thread_pool.clone(),
-                        auth_service: auth_service.clone(),
-                        key_generator: key_generator.clone(),
-                        keys_repo_factory: Arc::new(create_keys_repo),
-                    });
+                    let keys_service = Arc::new(KeysServiceImpl::new(
+                        db_pool,
+                        auth_service.clone(),
+                        thread_pool.clone(),
+                        Arc::new(create_keys_repo),
+                        key_generator.clone(),
+                    ));
 
                     let ctx = Context {
                         body,

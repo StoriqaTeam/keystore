@@ -28,4 +28,11 @@ pub enum ErrorSource {
     R2D2,
 }
 
+#[allow(dead_code)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Fail)]
+pub enum ErrorContext {
+    #[fail(display = "service error context - no auth token received")]
+    NoAuthToken,
+}
+
 derive_error_impls!();

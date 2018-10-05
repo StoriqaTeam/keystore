@@ -16,6 +16,12 @@ pub struct AuthenticationToken(String);
 derive_newtype_sql!(authentication_token, VarChar, AuthenticationToken, AuthenticationToken);
 mask_logs!(AuthenticationToken);
 
+impl AuthenticationToken {
+    pub fn new(data: String) -> Self {
+        AuthenticationToken(data)
+    }
+}
+
 #[derive(Debug, Deserialize, Queryable, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct User {

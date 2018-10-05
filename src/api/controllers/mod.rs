@@ -2,9 +2,10 @@ use std::fmt::{self, Display};
 use std::sync::Arc;
 
 use futures::prelude::*;
-use hyper::{header::HeaderValue, Body, HeaderMap, Method, Response, Uri};
+use hyper::{header::HeaderValue, header::AUTHORIZATION, Body, HeaderMap, Method, Response, Uri};
 
 use super::error::*;
+use models::*;
 use prelude::*;
 use services::KeysService;
 
@@ -23,6 +24,22 @@ pub struct Context {
     pub uri: Uri,
     pub headers: HeaderMap<HeaderValue>,
     pub keys_service: Arc<KeysService>,
+}
+
+impl Context {
+    pub fn get_auth_token(&self) -> Option<AuthenticationToken> {
+        self.headers
+            .get(AUTHORIZATION)
+            .and_then(|header| header.to_str().ok())
+            .and_then(|header| {
+                let len = "Bearer ".len();
+                if (header.len() > len) && header.starts_with("Bearer ") {
+                    Some(header[len..].to_string())
+                } else {
+                    None
+                }
+            }).map(|t| AuthenticationToken::new(t))
+    }
 }
 
 impl Display for Context {

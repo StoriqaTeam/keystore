@@ -1,14 +1,16 @@
 use std::sync::Arc;
 
 use super::error::*;
+use super::ServiceFuture;
 use diesel::pg::PgConnection;
+use futures::future;
 use futures_cpupool::CpuPool;
 use models::*;
 use prelude::*;
 use repos::UsersRepo;
 
 pub trait AuthService: Send + Sync + 'static {
-    fn authenticate(&self, token: AuthenticationToken) -> Box<Future<Item = User, Error = Error>>;
+    fn authenticate(&self, maybe_token: Option<AuthenticationToken>) -> ServiceFuture<User>;
 }
 
 #[derive(Clone)]
@@ -18,8 +20,26 @@ pub struct AuthServiceImpl {
     users_repo_factory: Arc<for<'a> Fn(&'a PgConnection) -> Box<UsersRepo + 'a> + Send + Sync>,
 }
 
+impl AuthServiceImpl {
+    pub fn new(
+        db_pool: PgConnectionPool,
+        thread_pool: CpuPool,
+        users_repo_factory: Arc<for<'a> Fn(&'a PgConnection) -> Box<UsersRepo + 'a> + Send + Sync>,
+    ) -> Self {
+        AuthServiceImpl {
+            db_pool,
+            thread_pool,
+            users_repo_factory,
+        }
+    }
+}
+
 impl AuthService for AuthServiceImpl {
-    fn authenticate(&self, token: AuthenticationToken) -> Box<Future<Item = User, Error = Error>> {
+    fn authenticate(&self, maybe_token: Option<AuthenticationToken>) -> ServiceFuture<User> {
+        let token = match maybe_token {
+            Some(t) => t,
+            None => return Box::new(future::err(ErrorKind::Unauthorized.into())),
+        };
         let db_pool = self.db_pool.clone();
         let users_repo_factory = self.users_repo_factory.clone();
         let token_clone = token.clone();
@@ -33,8 +53,7 @@ impl AuthService for AuthServiceImpl {
                         .find_user_by_authentication_token(token)
                         .map_err(ectx!(ErrorKind::Internal => token_clone))
                 }).and_then(move |maybe_user| {
-                    let e: Error = ErrorKind::Unauthorized.into();
-                    maybe_user.ok_or(ectx!(err e => token_clone2))
+                    maybe_user.ok_or(ectx!(err ErrorContext::NoAuthToken, ErrorKind::Unauthorized => token_clone2))
                 })
         }))
     }
