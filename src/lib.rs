@@ -40,6 +40,7 @@ mod utils;
 
 use config::Config;
 
+/// Hello
 pub fn hello() {
     println!("Hello world");
 }
