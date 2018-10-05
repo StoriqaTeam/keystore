@@ -35,8 +35,8 @@ macro_rules! ectx {
 }
 
 macro_rules! derive_newtype_sql {
-    ($name:ident, $sql_type:ty, $type:ty, $constructor:expr) => {
-        mod $name {
+    ($mod_name:ident, $sql_type:ty, $type:ty, $constructor:expr) => {
+        mod $mod_name {
             use super::*;
             use diesel::deserialize::{self, FromSql};
             use diesel::pg::Pg;
@@ -69,6 +69,47 @@ macro_rules! mask_logs {
         impl Display for $type {
             fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
                 f.write_str("********")
+            }
+        }
+    };
+}
+
+macro_rules! derive_error_impls {
+    () => {
+        #[allow(dead_code)]
+        impl Error {
+            pub fn kind(&self) -> ErrorKind {
+                self.inner.get_context().clone()
+            }
+        }
+
+        impl Fail for Error {
+            fn cause(&self) -> Option<&Fail> {
+                self.inner.cause()
+            }
+
+            fn backtrace(&self) -> Option<&Backtrace> {
+                self.inner.backtrace()
+            }
+        }
+
+        impl Display for Error {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                Display::fmt(&self.inner, f)
+            }
+        }
+
+        impl From<ErrorKind> for Error {
+            fn from(kind: ErrorKind) -> Error {
+                Error {
+                    inner: Context::new(kind),
+                }
+            }
+        }
+
+        impl From<Context<ErrorKind>> for Error {
+            fn from(inner: Context<ErrorKind>) -> Error {
+                Error { inner: inner }
             }
         }
     };
