@@ -19,9 +19,9 @@ mask_logs!(AuthenticationToken);
 #[derive(Debug, Deserialize, Queryable, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct User {
-    id: UserId,
-    name: String,
-    authentication_token: AuthenticationToken,
-    created_at: SystemTime,
-    updated_at: SystemTime,
+    pub id: UserId,
+    pub name: String,
+    pub authentication_token: AuthenticationToken,
+    pub created_at: SystemTime,
+    pub updated_at: SystemTime,
 }

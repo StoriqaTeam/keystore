@@ -7,4 +7,3 @@ use diesel::PgConnection;
 use r2d2::Pool;
 
 pub type PgConnectionPool = Pool<ConnectionManager<PgConnection>>;
-pub type RepoFactory<'a, R: ?Sized + 'a> = Fn(&'a PgConnection) -> Box<R>;

@@ -23,12 +23,14 @@ extern crate validator_derive;
 extern crate validator;
 #[macro_use]
 extern crate sentry;
+extern crate rand;
 extern crate regex;
 extern crate uuid;
 
 #[macro_use]
 mod macros;
 mod api;
+mod blockchain;
 mod config;
 mod models;
 mod prelude;

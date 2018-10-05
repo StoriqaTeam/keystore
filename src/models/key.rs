@@ -19,10 +19,22 @@ pub struct PrivateKey(String);
 derive_newtype_sql!(private_key_id, VarChar, PrivateKey, PrivateKey);
 mask_logs!(PrivateKey);
 
+impl PrivateKey {
+    pub fn new(data: String) -> Self {
+        PrivateKey(data)
+    }
+}
+
 #[derive(Debug, FromSqlRow, AsExpression, Clone)]
 #[sql_type = "VarChar"]
 pub struct BlockChainAddress(String);
 derive_newtype_sql!(blockchain_address, VarChar, BlockChainAddress, BlockChainAddress);
+
+impl BlockChainAddress {
+    pub fn new(data: String) -> Self {
+        BlockChainAddress(data)
+    }
+}
 
 #[derive(Debug, Queryable, Clone)]
 pub struct Key {

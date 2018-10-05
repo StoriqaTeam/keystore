@@ -26,7 +26,10 @@ use r2d2;
 
 use self::controllers::*;
 use self::error::*;
+use blockchain::{KeyGenerator, KeyGeneratorImpl};
 use prelude::*;
+use repos::{create_keys_repo, create_users_repo};
+use services::{AuthService, AuthServiceImpl, KeysService, KeysServiceImpl};
 
 #[derive(Clone)]
 pub struct ApiService {
@@ -74,6 +77,7 @@ impl Service for ApiService {
     fn call(&mut self, req: Request<Body>) -> Self::Future {
         let (parts, http_body) = req.into_parts();
         let db_pool = self.db_pool.clone();
+        let thread_pool = self.cpu_pool.clone();
         Box::new(
             read_body(http_body)
                 .map_err(ectx!(ErrorSource::Hyper, ErrorKind::Internal))
@@ -84,14 +88,26 @@ impl Service for ApiService {
                         _ => not_found,
                     };
 
-                    let service = Arc::new(Service::new(db_pool));
+                    let auth_service = Arc::new(AuthServiceImpl {
+                        db_pool: db_pool.clone(),
+                        thread_pool: thread_pool.clone(),
+                        users_repo_factory: Arc::new(create_users_repo),
+                    });
+                    let key_generator = Arc::new(KeyGeneratorImpl);
+                    let keys_service = Arc::new(KeysServiceImpl {
+                        db_pool: db_pool.clone(),
+                        thread_pool: thread_pool.clone(),
+                        auth_service: auth_service.clone(),
+                        key_generator: key_generator.clone(),
+                        keys_repo_factory: Arc::new(create_keys_repo),
+                    });
 
                     let ctx = Context {
                         body,
                         method: parts.method.clone(),
                         uri: parts.uri.clone(),
                         headers: parts.headers,
-                        keys_service: service.clone(),
+                        keys_service,
                     };
 
                     debug!("Received request {}", ctx);

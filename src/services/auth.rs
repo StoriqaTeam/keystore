@@ -7,7 +7,7 @@ use models::*;
 use prelude::*;
 use repos::UsersRepo;
 
-pub trait AuthService {
+pub trait AuthService: Send + Sync + 'static {
     fn authenticate(&self, token: AuthenticationToken) -> Box<Future<Item = User, Error = Error>>;
 }
 
@@ -33,7 +33,7 @@ impl AuthService for AuthServiceImpl {
                         .find_user_by_authentication_token(token)
                         .map_err(ectx!(ErrorKind::Internal => token_clone))
                 }).and_then(move |maybe_user| {
-                    let e = ErrorKind::Unauthorized.into();
+                    let e: Error = ErrorKind::Unauthorized.into();
                     maybe_user.ok_or(ectx!(err e => token_clone2))
                 })
         }))
