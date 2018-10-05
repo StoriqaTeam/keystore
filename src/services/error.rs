@@ -23,9 +23,9 @@ pub enum ErrorKind {
 
 #[allow(dead_code)]
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Fail)]
-pub enum ErrorContext {
-    #[fail(display = "service error context - internal error")]
-    Internal,
+pub enum ErrorSource {
+    #[fail(display = "service error source - r2d2")]
+    R2D2,
 }
 
 derive_error_impls!();

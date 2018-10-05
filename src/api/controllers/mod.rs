@@ -5,6 +5,7 @@ use futures::prelude::*;
 use hyper::{header::HeaderValue, Body, HeaderMap, Method, Response, Uri};
 
 use super::error::*;
+use prelude::*;
 
 mod fallback;
 mod keys;
@@ -20,6 +21,7 @@ pub struct Context {
     pub method: Method,
     pub uri: Uri,
     pub headers: HeaderMap<HeaderValue>,
+    pub keys_service: Arc<KeysService>,
 }
 
 impl Display for Context {

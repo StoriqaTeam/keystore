@@ -22,15 +22,17 @@ mod requests;
 mod responses;
 mod utils;
 
+use r2d2;
+
 use self::controllers::*;
 use self::error::*;
-use r2d2;
+use prelude::*;
 
 #[derive(Clone)]
 pub struct ApiService {
     server_address: SocketAddr,
     config: Config,
-    db_pool: Pool<ConnectionManager<PgConnection>>,
+    db_pool: PgConnectionPool,
     cpu_pool: CpuPool,
 }
 
@@ -71,6 +73,7 @@ impl Service for ApiService {
 
     fn call(&mut self, req: Request<Body>) -> Self::Future {
         let (parts, http_body) = req.into_parts();
+        let db_pool = self.db_pool.clone();
         Box::new(
             read_body(http_body)
                 .map_err(ectx!(ErrorSource::Hyper, ErrorKind::Internal))
@@ -81,11 +84,14 @@ impl Service for ApiService {
                         _ => not_found,
                     };
 
+                    let service = Arc::new(Service::new(db_pool));
+
                     let ctx = Context {
                         body,
                         method: parts.method.clone(),
                         uri: parts.uri.clone(),
                         headers: parts.headers,
+                        keys_service: service.clone(),
                     };
 
                     debug!("Received request {}", ctx);

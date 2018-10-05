@@ -6,4 +6,5 @@ CREATE TABLE users (
     updated_at TIMESTAMP NOT NULL DEFAULT current_timestamp
 );
 
+CREATE UNIQUE INDEX users_authentication_token_idx ON users (authentication_token);
 SELECT diesel_manage_updated_at('users');
