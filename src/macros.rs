@@ -33,3 +33,43 @@ macro_rules! ectx {
         }
     }};
 }
+
+macro_rules! derive_newtype_sql {
+    ($name:ident, $sql_type:ty, $type:ty, $constructor:expr) => {
+        mod $name {
+            use super::*;
+            use diesel::deserialize::{self, FromSql};
+            use diesel::pg::Pg;
+            use diesel::serialize::{self, Output, ToSql};
+            use std::io::Write;
+
+            impl FromSql<$sql_type, Pg> for $type {
+                fn from_sql(data: Option<&[u8]>) -> deserialize::Result<Self> {
+                    FromSql::<$sql_type, Pg>::from_sql(data).map($constructor)
+                }
+            }
+
+            impl ToSql<$sql_type, Pg> for $type {
+                fn to_sql<W: Write>(&self, out: &mut Output<W, Pg>) -> serialize::Result {
+                    ToSql::<$sql_type, Pg>::to_sql(&self.0, out)
+                }
+            }
+        }
+    };
+}
+
+macro_rules! mask_logs {
+    ($type:ty) => {
+        impl Debug for $type {
+            fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+                f.write_str("********")
+            }
+        }
+
+        impl Display for $type {
+            fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+                f.write_str("********")
+            }
+        }
+    };
+}

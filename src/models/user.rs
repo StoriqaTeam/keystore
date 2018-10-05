@@ -1,58 +1,20 @@
-use diesel::deserialize::{self, FromSql};
-use diesel::pg::Pg;
-use diesel::serialize::{self, Output, ToSql};
-use diesel::sql_types::{Uuid as SqlUuid, VarChar};
 use std::fmt;
 use std::fmt::{Debug, Display};
-use std::io::Write;
 use std::time::SystemTime;
+
+use diesel::sql_types::{Uuid as SqlUuid, VarChar};
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize, FromSqlRow, AsExpression, Clone)]
 #[sql_type = "SqlUuid"]
 pub struct UserId(Uuid);
-
-impl FromSql<SqlUuid, Pg> for UserId {
-    fn from_sql(data: Option<&[u8]>) -> deserialize::Result<Self> {
-        FromSql::<SqlUuid, Pg>::from_sql(data).map(UserId)
-    }
-}
-
-impl ToSql<SqlUuid, Pg> for UserId {
-    fn to_sql<W: Write>(&self, out: &mut Output<W, Pg>) -> serialize::Result {
-        ToSql::<SqlUuid, Pg>::to_sql(&self.0, out)
-    }
-}
+derive_newtype_sql!(user_id, SqlUuid, UserId, UserId);
 
 #[derive(Deserialize, FromSqlRow, AsExpression, Clone)]
 #[sql_type = "VarChar"]
 pub struct AuthenticationToken(String);
-
-impl FromSql<VarChar, Pg> for AuthenticationToken {
-    fn from_sql(data: Option<&[u8]>) -> deserialize::Result<Self> {
-        FromSql::<VarChar, Pg>::from_sql(data).map(AuthenticationToken)
-    }
-}
-
-impl ToSql<VarChar, Pg> for AuthenticationToken {
-    fn to_sql<W: Write>(&self, out: &mut Output<W, Pg>) -> serialize::Result {
-        ToSql::<VarChar, Pg>::to_sql(&self.0, out)
-    }
-}
-
-const MASK: &str = "********";
-
-impl Debug for AuthenticationToken {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        f.write_str(MASK)
-    }
-}
-
-impl Display for AuthenticationToken {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        f.write_str(MASK)
-    }
-}
+derive_newtype_sql!(authentication_token, VarChar, AuthenticationToken, AuthenticationToken);
+mask_logs!(AuthenticationToken);
 
 #[derive(Debug, Deserialize, Queryable, Clone)]
 #[serde(rename_all = "camelCase")]
