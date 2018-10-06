@@ -2,8 +2,13 @@ use std::fmt;
 use std::fmt::{Debug, Display};
 use std::time::SystemTime;
 
+use base64;
 use diesel::sql_types::{Uuid as SqlUuid, VarChar};
+use rand::OsRng;
+use schema::users;
 use uuid::Uuid;
+
+use prelude::*;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, FromSqlRow, AsExpression, Clone)]
 #[sql_type = "SqlUuid"]
@@ -20,11 +25,19 @@ impl AuthenticationToken {
     pub fn new(data: String) -> Self {
         AuthenticationToken(data)
     }
+
+    pub fn raw(&self) -> &str {
+        &self.0
+    }
 }
 
 impl Default for AuthenticationToken {
     fn default() -> Self {
-        AuthenticationToken(format!("{}", Uuid::new_v4()))
+        let mut gen = OsRng::new().unwrap();
+        let mut data = Vec::with_capacity(32);
+        data.resize(32, 0);
+        gen.fill_bytes(&mut data);
+        AuthenticationToken(base64::encode(&data))
     }
 }
 
@@ -46,6 +59,25 @@ impl Default for User {
             authentication_token: Default::default(),
             created_at: SystemTime::now(),
             updated_at: SystemTime::now(),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Queryable, Insertable, Clone)]
+#[table_name = "users"]
+#[serde(rename_all = "camelCase")]
+pub struct NewUser {
+    pub id: UserId,
+    pub name: String,
+    pub authentication_token: AuthenticationToken,
+}
+
+impl Default for NewUser {
+    fn default() -> Self {
+        NewUser {
+            id: UserId(Uuid::new_v4()),
+            name: "Anonymous".to_string(),
+            authentication_token: Default::default(),
         }
     }
 }

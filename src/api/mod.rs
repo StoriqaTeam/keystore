@@ -10,7 +10,6 @@ use futures_cpupool::CpuPool;
 use hyper;
 use hyper::Server;
 use hyper::{service::Service, Body, Request, Response};
-use r2d2::Pool;
 
 use super::config::Config;
 use super::utils::{log_and_capture_error, log_error, log_warn};
@@ -41,23 +40,22 @@ pub struct ApiService {
 
 impl ApiService {
     fn from_config(config: &Config) -> Result<Self, Error> {
-        let server_address: Result<SocketAddr, Error> = format!("{}:{}", config.server.host, config.server.port)
+        let server_address = format!("{}:{}", config.server.host, config.server.port)
             .parse::<SocketAddr>()
             .map_err(ectx!(
+                try
                 ErrorContext::Config,
                 ErrorKind::Internal =>
                 config.server.host,
                 config.server.port
-            ));
-        let server_address = server_address?;
+            ))?;
         let database_url = config.database.url.clone();
         let manager = ConnectionManager::<PgConnection>::new(database_url.clone());
-        let db_pool: Result<Pool<ConnectionManager<PgConnection>>, Error> = r2d2::Pool::builder().build(manager).map_err(ectx!(
+        let db_pool = r2d2::Pool::builder().build(manager).map_err(ectx!(try
             ErrorContext::Config,
             ErrorKind::Internal =>
             database_url
-        ));
-        let db_pool = db_pool?;
+        ))?;
         let cpu_pool = CpuPool::new(config.database.thread_pool_size);
         Ok(ApiService {
             config: config.clone(),

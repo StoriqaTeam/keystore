@@ -48,4 +48,17 @@ impl UsersRepo for UsersRepoMock {
         let data = self.data.lock().unwrap();
         Ok(data.iter().filter(|x| x.authentication_token == token).nth(1).cloned())
     }
+
+    fn create(&self, payload: NewUser) -> Result<User, Error> {
+        let mut data = self.data.lock().unwrap();
+        let res = User {
+            id: payload.id,
+            name: payload.name,
+            authentication_token: payload.authentication_token,
+            created_at: SystemTime::now(),
+            updated_at: SystemTime::now(),
+        };
+        data.push(res.clone());
+        Ok(res)
+    }
 }
