@@ -1,12 +1,11 @@
 use super::super::error::*;
 use super::super::requests::*;
 use super::super::responses::*;
-use super::super::utils::{parse_body, response_with_model};
+use super::super::utils::response_with_model;
 use super::Context;
 use super::ControllerFuture;
 use failure::Fail;
 use futures::prelude::*;
-use prelude::*;
 use serde_qs;
 
 pub fn get_keys(ctx: &Context) -> ControllerFuture {

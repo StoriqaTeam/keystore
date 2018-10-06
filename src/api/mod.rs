@@ -25,10 +25,10 @@ use r2d2;
 
 use self::controllers::*;
 use self::error::*;
-use blockchain::{KeyGenerator, KeyGeneratorImpl};
+use blockchain::KeyGeneratorImpl;
 use prelude::*;
 use repos::{create_keys_repo, create_users_repo};
-use services::{AuthService, AuthServiceImpl, KeysService, KeysServiceImpl};
+use services::{AuthServiceImpl, KeysServiceImpl};
 
 #[derive(Clone)]
 pub struct ApiService {

@@ -30,8 +30,8 @@ impl FromSql<VarChar, Pg> for Currency {
 impl ToSql<VarChar, Pg> for Currency {
     fn to_sql<W: Write>(&self, out: &mut Output<W, Pg>) -> serialize::Result {
         match self {
-            Currency::Eth => out.write_all(b"eth"),
-            Currency::Stq => out.write_all(b"stq"),
+            Currency::Eth => out.write_all(b"eth")?,
+            Currency::Stq => out.write_all(b"stq")?,
         };
         Ok(IsNull::No)
     }

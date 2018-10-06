@@ -6,7 +6,6 @@ use hyper::{header::HeaderValue, header::AUTHORIZATION, Body, HeaderMap, Method,
 
 use super::error::*;
 use models::*;
-use prelude::*;
 use services::KeysService;
 
 mod fallback;
