@@ -7,8 +7,16 @@ use super::users::*;
 use models::*;
 
 #[derive(Clone)]
-struct KeysRepoMock {
+pub struct KeysRepoMock {
     data: Arc<Mutex<Vec<Key>>>,
+}
+
+impl KeysRepoMock {
+    pub fn new() -> Self {
+        Self {
+            data: Arc::new(Mutex::new(Vec::new())),
+        }
+    }
 }
 
 impl KeysRepo for KeysRepoMock {
@@ -39,8 +47,16 @@ impl KeysRepo for KeysRepoMock {
 }
 
 #[derive(Clone)]
-struct UsersRepoMock {
+pub struct UsersRepoMock {
     data: Arc<Mutex<Vec<User>>>,
+}
+
+impl UsersRepoMock {
+    pub fn new() -> Self {
+        Self {
+            data: Arc::new(Mutex::new(Vec::new())),
+        }
+    }
 }
 
 impl UsersRepo for UsersRepoMock {

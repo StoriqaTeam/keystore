@@ -1,21 +1,12 @@
-#[cfg(test)]
-mod mocks;
-
-#[cfg(test)]
-pub use self::mocks::*;
-
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 
+use super::KeyGenerator;
 use models::*;
 
-pub trait KeyGenerator: Send + Sync + 'static {
-    fn generate_key(&self, currency: Currency) -> (PrivateKey, BlockChainAddress);
-}
+pub struct KeyGeneratorMock;
 
-pub struct KeyGeneratorImpl;
-
-impl KeyGenerator for KeyGeneratorImpl {
+impl KeyGenerator for KeyGeneratorMock {
     fn generate_key(&self, currency: Currency) -> (PrivateKey, BlockChainAddress) {
         let key: String = thread_rng().sample_iter(&Alphanumeric).take(30).collect();
         let address: String = thread_rng().sample_iter(&Alphanumeric).take(15).collect();
