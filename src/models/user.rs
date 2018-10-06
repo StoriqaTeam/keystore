@@ -10,7 +10,7 @@ use uuid::Uuid;
 pub struct UserId(Uuid);
 derive_newtype_sql!(user_id, SqlUuid, UserId, UserId);
 
-#[derive(Deserialize, FromSqlRow, AsExpression, Clone)]
+#[derive(Deserialize, FromSqlRow, AsExpression, PartialEq, Eq, Hash, Clone)]
 #[sql_type = "VarChar"]
 pub struct AuthenticationToken(String);
 derive_newtype_sql!(authentication_token, VarChar, AuthenticationToken, AuthenticationToken);
@@ -22,6 +22,12 @@ impl AuthenticationToken {
     }
 }
 
+impl Default for AuthenticationToken {
+    fn default() -> Self {
+        AuthenticationToken(format!("{}", Uuid::new_v4()))
+    }
+}
+
 #[derive(Debug, Deserialize, Queryable, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct User {
@@ -30,4 +36,16 @@ pub struct User {
     pub authentication_token: AuthenticationToken,
     pub created_at: SystemTime,
     pub updated_at: SystemTime,
+}
+
+impl Default for User {
+    fn default() -> Self {
+        User {
+            id: UserId(Uuid::new_v4()),
+            name: "Anonymous".to_string(),
+            authentication_token: Default::default(),
+            created_at: SystemTime::now(),
+            updated_at: SystemTime::now(),
+        }
+    }
 }

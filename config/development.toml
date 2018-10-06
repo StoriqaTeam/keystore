@@ -3,6 +3,6 @@ host = "0.0.0.0"
 port = 8000
 
 [database]
-url = "postgresql://keystore:keystore@keystore-pg/keystore"
+url = "postgresql://keystore:keystore@localhost/keystore"
 thread_pool_size = 1
 
