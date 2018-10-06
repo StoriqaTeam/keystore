@@ -5,7 +5,7 @@ use std::time::SystemTime;
 use diesel::sql_types::{Uuid as SqlUuid, VarChar};
 use uuid::Uuid;
 
-#[derive(Debug, Serialize, Deserialize, FromSqlRow, AsExpression, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, FromSqlRow, AsExpression, Clone)]
 #[sql_type = "SqlUuid"]
 pub struct UserId(Uuid);
 derive_newtype_sql!(user_id, SqlUuid, UserId, UserId);
