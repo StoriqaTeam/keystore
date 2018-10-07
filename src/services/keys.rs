@@ -4,7 +4,6 @@ use super::auth::AuthService;
 use super::error::*;
 use super::ServiceFuture;
 use blockchain::KeyGenerator;
-use diesel::pg::PgConnection;
 use futures_cpupool::CpuPool;
 use models::*;
 use prelude::*;
@@ -16,19 +15,19 @@ pub trait KeysService: Send + Sync + 'static {
 }
 
 pub struct KeysServiceImpl {
-    db_pool: PgConnectionPool,
+    db_pool: PgPool,
     auth_service: Arc<AuthService>,
     thread_pool: CpuPool,
-    keys_repo_factory: Arc<for<'a> Fn(&'a PgConnection) -> Box<KeysRepo + 'a> + Send + Sync>,
+    keys_repo_factory: Arc<Fn(Arc<PgPooledConnection>) -> Box<KeysRepo> + Send + Sync>,
     key_generator: Arc<KeyGenerator>,
 }
 
 impl KeysServiceImpl {
     pub fn new(
-        db_pool: PgConnectionPool,
+        db_pool: PgPool,
         auth_service: Arc<AuthService>,
         thread_pool: CpuPool,
-        keys_repo_factory: Arc<for<'a> Fn(&'a PgConnection) -> Box<KeysRepo + 'a> + Send + Sync>,
+        keys_repo_factory: Arc<Fn(Arc<PgPooledConnection>) -> Box<KeysRepo> + Send + Sync>,
         key_generator: Arc<KeyGenerator>,
     ) -> Self {
         Self {
@@ -54,7 +53,7 @@ impl KeysService for KeysServiceImpl {
                     .get()
                     .map_err(ectx!(ErrorSource::R2D2, ErrorKind::Internal))
                     .and_then(|conn| {
-                        keys_repo_factory(&conn)
+                        keys_repo_factory(Arc::new(conn))
                             .list(user_id, offset, limit)
                             .map_err(ectx!(ErrorKind::Internal => user_id_clone, offset, limit))
                     })
@@ -84,7 +83,7 @@ impl KeysService for KeysServiceImpl {
                             private_key,
                             blockchain_address,
                         };
-                        keys_repo_factory(&conn)
+                        keys_repo_factory(Arc::new(conn))
                             .create(new_key)
                             .map_err(ectx!(ErrorKind::Internal => owner_id_clone, currency, id_clone))
                     })
@@ -112,12 +111,12 @@ mod tests {
         let auth_service = Arc::new(AuthServiceMock::new(vec![token.clone()]));
         let thread_pool = CpuPool::new(1);
         let key_generator = Arc::new(KeyGeneratorMock);
-        let keys_repo_factory = Arc::new(move |&conn| Box::new(keys_repo_mock.clone()));
+        let keys_repo_factory = Arc::new(move |_| -> Box<KeysRepo> { Box::new(keys_repo_mock.clone()) });
         let keys_service = KeysServiceImpl::new(db_pool, auth_service, thread_pool, keys_repo_factory, key_generator);
     }
 }
 
-// db_pool: PgConnectionPool,
+// db_pool: PgPool,
 // auth_service: Arc<AuthService>,
 // thread_pool: CpuPool,
 // keys_repo_factory: Arc<for<'a> Fn(&'a PgConnection) -> Box<KeysRepo + 'a> + Send + Sync>,

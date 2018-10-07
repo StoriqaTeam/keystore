@@ -1,9 +1,7 @@
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use super::error::*;
 use super::ServiceFuture;
-use diesel::pg::PgConnection;
 use futures::future;
 use futures_cpupool::CpuPool;
 use models::*;
@@ -16,16 +14,16 @@ pub trait AuthService: Send + Sync + 'static {
 
 #[derive(Clone)]
 pub struct AuthServiceImpl {
-    db_pool: PgConnectionPool,
+    db_pool: PgPool,
     thread_pool: CpuPool,
-    users_repo_factory: Arc<for<'a> Fn(&'a PgConnection) -> Box<UsersRepo + 'a> + Send + Sync>,
+    users_repo_factory: Arc<Fn(Arc<PgPooledConnection>) -> Box<UsersRepo> + Send + Sync>,
 }
 
 impl AuthServiceImpl {
     pub fn new(
-        db_pool: PgConnectionPool,
+        db_pool: PgPool,
         thread_pool: CpuPool,
-        users_repo_factory: Arc<for<'a> Fn(&'a PgConnection) -> Box<UsersRepo + 'a> + Send + Sync>,
+        users_repo_factory: Arc<Fn(Arc<PgPooledConnection>) -> Box<UsersRepo> + Send + Sync>,
     ) -> Self {
         AuthServiceImpl {
             db_pool,
@@ -50,7 +48,7 @@ impl AuthService for AuthServiceImpl {
                 .get()
                 .map_err(ectx!(ErrorSource::R2D2, ErrorKind::Internal))
                 .and_then(move |conn| {
-                    users_repo_factory(&conn)
+                    users_repo_factory(Arc::new(conn))
                         .find_user_by_authentication_token(token)
                         .map_err(ectx!(ErrorKind::Internal => token_clone))
                 }).and_then(move |maybe_user| {

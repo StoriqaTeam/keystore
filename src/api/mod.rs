@@ -27,14 +27,14 @@ use self::controllers::*;
 use self::error::*;
 use blockchain::KeyGeneratorImpl;
 use prelude::*;
-use repos::{create_keys_repo, create_users_repo};
+use repos::{KeysRepoImpl, UsersRepoImpl};
 use services::{AuthServiceImpl, KeysServiceImpl};
 
 #[derive(Clone)]
 pub struct ApiService {
     server_address: SocketAddr,
     config: Config,
-    db_pool: PgConnectionPool,
+    db_pool: PgPool,
     cpu_pool: CpuPool,
 }
 
@@ -89,14 +89,14 @@ impl Service for ApiService {
                     let auth_service = Arc::new(AuthServiceImpl::new(
                         db_pool.clone(),
                         thread_pool.clone(),
-                        Arc::new(create_users_repo),
+                        Arc::new(|conn| Box::new(UsersRepoImpl::new(conn))),
                     ));
                     let key_generator = Arc::new(KeyGeneratorImpl);
                     let keys_service = Arc::new(KeysServiceImpl::new(
                         db_pool,
                         auth_service.clone(),
                         thread_pool.clone(),
-                        Arc::new(create_keys_repo),
+                        Arc::new(|conn| Box::new(KeysRepoImpl::new(conn))),
                         key_generator.clone(),
                     ));
 
