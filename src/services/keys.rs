@@ -102,17 +102,17 @@ mod tests {
 
     #[test]
     fn test_create() {
-        let db_pool = create_db_pool(&get_config());
-        let users_repo = UsersRepoMock::new();
-        let new_user = NewUser::default();
-        let token = new_user.authentication_token.clone();
-        let _ = users_repo.create(new_user);
-        let keys_repo_mock = KeysRepoMock::new();
-        let auth_service = Arc::new(AuthServiceMock::new(vec![token.clone()]));
-        let thread_pool = CpuPool::new(1);
-        let key_generator = Arc::new(KeyGeneratorMock);
-        let keys_repo_factory = Arc::new(move |_| -> Box<KeysRepo> { Box::new(keys_repo_mock.clone()) });
-        let keys_service = KeysServiceImpl::new(db_pool, auth_service, thread_pool, keys_repo_factory, key_generator);
+        // let db_pool = create_db_pool(&get_config());
+        // let users_repo = UsersRepoMock::new();
+        // let new_user = NewUser::default();
+        // let token = new_user.authentication_token.clone();
+        // let _ = users_repo.create(new_user);
+        // let keys_repo_mock = KeysRepoMock::new();
+        // let auth_service = Arc::new(AuthServiceMock::new(vec![token.clone()]));
+        // let thread_pool = CpuPool::new(1);
+        // let key_generator = Arc::new(KeyGeneratorMock);
+        // let keys_repo_factory = Arc::new(move |_| -> Box<KeysRepo> { Box::new(keys_repo_mock.clone()) });
+        // let keys_service = KeysServiceImpl::new(db_pool, auth_service, thread_pool, keys_repo_factory, key_generator);
     }
 }
 

@@ -89,7 +89,7 @@ impl Service for ApiService {
                     let auth_service = Arc::new(AuthServiceImpl::new(
                         db_pool.clone(),
                         thread_pool.clone(),
-                        Arc::new(|conn| Box::new(UsersRepoImpl::new(conn))),
+                        UsersRepoImpl::new(db_pool.clone(), thread_pool.clone()),
                     ));
                     let key_generator = Arc::new(KeyGeneratorImpl);
                     let keys_service = Arc::new(KeysServiceImpl::new(

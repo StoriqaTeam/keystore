@@ -12,7 +12,7 @@ thread_local! {
     static DB_CONN: RefCell<Option<PgPooledConnection>> = RefCell::new(None)
 }
 
-pub trait Repo: Clone + Send + 'static {
+pub trait Repo: Clone + Send + Sync + 'static {
     fn get_db_pool(&self) -> PgPool;
     fn get_db_thread_pool(&self) -> CpuPool;
     fn execute<F, T>(&self, f: F) -> Box<Future<Item = T, Error = Error> + Send + 'static>
