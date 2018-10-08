@@ -55,7 +55,7 @@ impl<E: DbExecutor> KeysService for KeysServiceImpl<E> {
             let owner_id = user.id;
             let owner_id_clone = owner_id.clone();
             db_executor.execute(move || {
-                let (private_key, blockchain_address) = key_generator.generate_key(currency);
+                let (private_key, blockchain_address) = key_generator.generate_key(currency).map_err(ectx!(try ErrorKind::Internal))?;
                 let new_key = NewKey {
                     id,
                     currency,
