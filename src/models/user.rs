@@ -10,10 +10,16 @@ use uuid::Uuid;
 
 use prelude::*;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, FromSqlRow, AsExpression, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, FromSqlRow, AsExpression, Clone)]
 #[sql_type = "SqlUuid"]
 pub struct UserId(Uuid);
 derive_newtype_sql!(user_id, SqlUuid, UserId, UserId);
+
+impl Debug for UserId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        Display::fmt(&self.0, f)
+    }
+}
 
 #[derive(Deserialize, FromSqlRow, AsExpression, PartialEq, Eq, Hash, Clone)]
 #[sql_type = "VarChar"]

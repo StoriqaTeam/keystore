@@ -46,25 +46,14 @@ impl ErrorKind {
             DieselError::DatabaseError(DatabaseErrorKind::UniqueViolation, ref info) => {
                 let mut errors = ValidationErrors::new();
                 let mut error = ValidationError::new("not unique");
-                let column_name: &str = info.column_name().unwrap_or("unknown");
-                error.add_param("column".into(), &column_name);
+                let message: &str = info.message();
+                let details: &str = info.details().unwrap_or("no details");
+                error.add_param("message".into(), &message);
+                error.add_param("details".into(), &details);
                 errors.add("database", error);
                 ErrorKind::Constraints(errors)
             }
             _ => ErrorKind::Internal,
         }
     }
-    // fn from(e: DieselError) -> Self {
-    //     match e {
-    //         DieselError::DatabaseError(DatabaseErrorKind::UniqueViolation, info) => {
-    //             let mut errors = ValidationErrors::new();
-    //             let mut error = ValidationError::new("not unique");
-    //             let column_name: &str = info.column_name().unwrap_or("unknown");
-    //             error.add_param("column".into(), &column_name);
-    //             errors.add("database", error);
-    //             ErrorKind::Constraints(errors).into()
-    //         }
-    //         _ => ectx!(err e, ErrorKind::Internal),
-    //     }
-    // }
 }

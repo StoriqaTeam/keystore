@@ -28,6 +28,7 @@ use self::error::*;
 use blockchain::KeyGeneratorImpl;
 use prelude::*;
 use repos::{DbExecutorImpl, KeysRepoImpl, UsersRepoImpl};
+use serde_json;
 use services::{AuthServiceImpl, KeysServiceImpl};
 
 #[derive(Clone)]
@@ -126,10 +127,12 @@ impl Service for ApiService {
                     }
                     ErrorKind::UnprocessableEntity(errors) => {
                         log_warn(&e);
+                        let errors =
+                            serde_json::to_string(&errors).unwrap_or(r#"{"message": "unable to serialize validation errors"}"#.to_string());
                         Ok(Response::builder()
                             .status(422)
                             .header("Content-Type", "application/json")
-                            .body(Body::from(format!("{}", errors)))
+                            .body(Body::from(errors))
                             .unwrap())
                     }
                     ErrorKind::Internal => {

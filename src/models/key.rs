@@ -8,7 +8,7 @@ use super::currency::Currency;
 use super::user::UserId;
 use schema::keys;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, FromSqlRow, AsExpression, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, FromSqlRow, AsExpression, Clone)]
 #[sql_type = "SqlUuid"]
 pub struct KeyId(Uuid);
 derive_newtype_sql!(key_id, SqlUuid, KeyId, KeyId);
@@ -16,6 +16,12 @@ derive_newtype_sql!(key_id, SqlUuid, KeyId, KeyId);
 impl Default for KeyId {
     fn default() -> Self {
         KeyId(Uuid::new_v4())
+    }
+}
+
+impl Debug for KeyId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        Display::fmt(&self.0, f)
     }
 }
 
