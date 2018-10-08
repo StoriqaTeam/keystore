@@ -19,6 +19,17 @@ pub enum ErrorKind {
 pub enum ErrorSource {
     #[fail(display = "database source - error inside of Diesel library")]
     Diesel,
+    #[fail(display = "database source - error inside of r2d2 library")]
+    R2D2,
+    #[fail(display = "database source - error inside postgres transaction")]
+    Transaction,
+}
+
+#[allow(dead_code)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Fail)]
+pub enum ErrorContext {
+    #[fail(display = "database context - error getting connection")]
+    Connection,
 }
 
 derive_error_impls!();

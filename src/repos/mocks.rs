@@ -2,9 +2,11 @@ use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 
 use super::error::*;
+use super::executor::DbExecutor;
 use super::keys::*;
 use super::users::*;
 use models::*;
+use prelude::*;
 
 #[derive(Clone)]
 pub struct KeysRepoMock {
@@ -76,5 +78,33 @@ impl UsersRepo for UsersRepoMock {
         };
         data.push(res.clone());
         Ok(res)
+    }
+}
+
+#[derive(Clone)]
+pub struct DbExecutorMock;
+
+impl DbExecutorMock {
+    pub fn new() -> Self {
+        DbExecutorMock
+    }
+}
+
+impl DbExecutor for DbExecutorMock {
+    fn execute<F, T, E>(&self, f: F) -> Box<Future<Item = T, Error = E> + Send + 'static>
+    where
+        T: Send + 'static,
+        F: FnOnce() -> Result<T, E> + Send + 'static,
+        E: From<Error> + Send + 'static,
+    {
+        Box::new(f().into_future())
+    }
+    fn execute_transaction<F, T, E>(&self, f: F) -> Box<Future<Item = T, Error = E> + Send + 'static>
+    where
+        T: Send + 'static,
+        F: FnOnce() -> Result<T, E> + Send + 'static,
+        E: From<Error> + Send + 'static,
+    {
+        Box::new(f().into_future())
     }
 }

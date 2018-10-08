@@ -27,14 +27,14 @@ use self::controllers::*;
 use self::error::*;
 use blockchain::KeyGeneratorImpl;
 use prelude::*;
-use repos::{create_keys_repo, create_users_repo};
+use repos::{DbExecutorImpl, KeysRepoImpl, UsersRepoImpl};
 use services::{AuthServiceImpl, KeysServiceImpl};
 
 #[derive(Clone)]
 pub struct ApiService {
     server_address: SocketAddr,
     config: Config,
-    db_pool: PgConnectionPool,
+    db_pool: PgPool,
     cpu_pool: CpuPool,
 }
 
@@ -76,6 +76,7 @@ impl Service for ApiService {
         let (parts, http_body) = req.into_parts();
         let db_pool = self.db_pool.clone();
         let thread_pool = self.cpu_pool.clone();
+        let db_executor = DbExecutorImpl::new(db_pool.clone(), thread_pool.clone());
         Box::new(
             read_body(http_body)
                 .map_err(ectx!(ErrorSource::Hyper, ErrorKind::Internal))
@@ -86,18 +87,13 @@ impl Service for ApiService {
                         _ => not_found,
                     };
 
-                    let auth_service = Arc::new(AuthServiceImpl::new(
-                        db_pool.clone(),
-                        thread_pool.clone(),
-                        Arc::new(create_users_repo),
-                    ));
+                    let auth_service = Arc::new(AuthServiceImpl::new(Arc::new(UsersRepoImpl), db_executor.clone()));
                     let key_generator = Arc::new(KeyGeneratorImpl);
                     let keys_service = Arc::new(KeysServiceImpl::new(
-                        db_pool,
                         auth_service.clone(),
-                        thread_pool.clone(),
-                        Arc::new(create_keys_repo),
                         key_generator.clone(),
+                        Arc::new(KeysRepoImpl),
+                        db_executor.clone(),
                     ));
 
                     let ctx = Context {

@@ -4,5 +4,5 @@ port = 8000
 
 [database]
 url = "postgresql://keystore:keystore@localhost/keystore"
-thread_pool_size = 1
+thread_pool_size = 4
 

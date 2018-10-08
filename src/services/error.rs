@@ -1,7 +1,10 @@
-use failure::{Backtrace, Context, Fail};
 use std::fmt;
 use std::fmt::Display;
+
+use failure::{Backtrace, Context, Fail};
 use validator::ValidationErrors;
+
+use repos::{Error as ReposError, ErrorKind as ReposErrorKind};
 
 #[derive(Debug)]
 pub struct Error {
@@ -36,3 +39,11 @@ pub enum ErrorContext {
 }
 
 derive_error_impls!();
+
+impl From<ReposError> for Error {
+    fn from(e: ReposError) -> Error {
+        match e.kind() {
+            ReposErrorKind::Internal => e.context(ErrorKind::Internal).into(),
+        }
+    }
+}

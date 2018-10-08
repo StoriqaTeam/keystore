@@ -29,6 +29,8 @@ extern crate regex;
 extern crate serde;
 extern crate serde_json;
 extern crate serde_qs;
+#[cfg(test)]
+extern crate tokio_core;
 extern crate uuid;
 extern crate validator;
 
@@ -47,10 +49,11 @@ mod utils;
 
 use diesel::pg::PgConnection;
 use diesel::r2d2::ConnectionManager;
+use futures_cpupool::CpuPool;
 
 use self::models::NewUser;
 use self::prelude::*;
-use self::repos::{UsersRepo, UsersRepoImpl};
+use self::repos::{DbExecutor, DbExecutorImpl, Error as ReposError, UsersRepo, UsersRepoImpl};
 use config::Config;
 
 pub fn hello() {
@@ -71,15 +74,20 @@ pub fn start_server() {
 pub fn create_user(name: &str) {
     let config = get_config();
     let db_pool = create_db_pool(&config);
-    let conn = db_pool.get().expect("Failed to obtain connection from pool");
-    let users_repo = UsersRepoImpl::new(&conn);
+    let cpu_pool = CpuPool::new(1);
+    let users_repo = UsersRepoImpl;
+    let db_executor = DbExecutorImpl::new(db_pool, cpu_pool);
     let mut new_user: NewUser = Default::default();
     new_user.name = name.to_string();
-    let user = users_repo.create(new_user).expect("Failed to create user");
-    println!("{}", user.authentication_token.raw())
+    let fut = db_executor.execute(move || -> Result<(), ReposError> {
+        let user = users_repo.create(new_user).expect("Failed to create user");
+        println!("{}", user.authentication_token.raw());
+        Ok(())
+    });
+    hyper::rt::run(fut.map(|_| ()).map_err(|_| ()));
 }
 
-fn create_db_pool(config: &Config) -> PgConnectionPool {
+fn create_db_pool(config: &Config) -> PgPool {
     let database_url = config.database.url.clone();
     let manager = ConnectionManager::<PgConnection>::new(database_url.clone());
     r2d2::Pool::builder()

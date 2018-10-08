@@ -1,12 +1,12 @@
 mod error;
-mod factory;
+mod executor;
 mod keys;
 #[cfg(test)]
 mod mocks;
 mod users;
 
 pub use self::error::*;
-pub use self::factory::*;
+pub use self::executor::{DbExecutor, DbExecutorImpl};
 pub use self::keys::*;
 #[cfg(test)]
 pub use self::mocks::*;
