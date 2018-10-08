@@ -21,6 +21,8 @@ pub enum ErrorSource {
     Diesel,
     #[fail(display = "database source - error inside of r2d2 library")]
     R2D2,
+    #[fail(display = "database source - error inside postgres transaction")]
+    Transaction,
 }
 
 #[allow(dead_code)]
