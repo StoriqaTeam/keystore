@@ -3,7 +3,6 @@ use std::time::SystemTime;
 
 use super::error::*;
 use super::keys::*;
-use super::users::*;
 use models::*;
 
 #[derive(Clone)]

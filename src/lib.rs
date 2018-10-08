@@ -45,8 +45,6 @@ mod sentry_integration;
 mod services;
 mod utils;
 
-use std::sync::Arc;
-
 use diesel::pg::PgConnection;
 use diesel::r2d2::ConnectionManager;
 use futures_cpupool::CpuPool;

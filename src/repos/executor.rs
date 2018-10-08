@@ -1,7 +1,6 @@
 use std::cell::RefCell;
 
 use diesel::pg::PgConnection;
-use diesel::result::Error as DieselError;
 use futures_cpupool::CpuPool;
 
 use super::error::*;
