@@ -1,6 +1,10 @@
-use failure::{Backtrace, Context, Fail};
+use std::borrow::Cow;
 use std::fmt;
 use std::fmt::Display;
+
+use diesel::result::{DatabaseErrorKind, Error as DieselError};
+use failure::{Backtrace, Context, Fail};
+use validator::{ValidationError, ValidationErrors};
 
 #[derive(Debug)]
 pub struct Error {
@@ -8,8 +12,10 @@ pub struct Error {
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Fail)]
+#[derive(Clone, Debug, Fail)]
 pub enum ErrorKind {
+    #[fail(display = "database error - constraints violation: {}", _0)]
+    Constraints(ValidationErrors),
     #[fail(display = "database error - internal")]
     Internal,
 }
@@ -33,3 +39,32 @@ pub enum ErrorContext {
 }
 
 derive_error_impls!();
+
+impl ErrorKind {
+    pub fn from_diesel(e: &DieselError) -> Self {
+        match e {
+            DieselError::DatabaseError(DatabaseErrorKind::UniqueViolation, ref info) => {
+                let mut errors = ValidationErrors::new();
+                let mut error = ValidationError::new("not unique");
+                let column_name: &str = info.column_name().unwrap_or("unknown");
+                error.add_param("column".into(), &column_name);
+                errors.add("database", error);
+                ErrorKind::Constraints(errors)
+            }
+            _ => ErrorKind::Internal,
+        }
+    }
+    // fn from(e: DieselError) -> Self {
+    //     match e {
+    //         DieselError::DatabaseError(DatabaseErrorKind::UniqueViolation, info) => {
+    //             let mut errors = ValidationErrors::new();
+    //             let mut error = ValidationError::new("not unique");
+    //             let column_name: &str = info.column_name().unwrap_or("unknown");
+    //             error.add_param("column".into(), &column_name);
+    //             errors.add("database", error);
+    //             ErrorKind::Constraints(errors).into()
+    //         }
+    //         _ => ectx!(err e, ErrorKind::Internal),
+    //     }
+    // }
+}

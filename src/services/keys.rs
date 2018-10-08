@@ -65,7 +65,7 @@ impl<E: DbExecutor> KeysService for KeysServiceImpl<E> {
                 };
                 keys_repo
                     .create(new_key)
-                    .map_err(ectx!(ErrorKind::Internal => owner_id_clone, currency, id_clone))
+                    .map_err(ectx!(convert => owner_id_clone, currency, id_clone))
             })
         }))
     }

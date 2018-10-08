@@ -42,8 +42,16 @@ derive_error_impls!();
 
 impl From<ReposError> for Error {
     fn from(e: ReposError) -> Error {
-        match e.kind() {
-            ReposErrorKind::Internal => e.context(ErrorKind::Internal).into(),
+        let kind: ErrorKind = e.kind().into();
+        e.context(kind).into()
+    }
+}
+
+impl From<ReposErrorKind> for ErrorKind {
+    fn from(e: ReposErrorKind) -> ErrorKind {
+        match e {
+            ReposErrorKind::Internal => ErrorKind::Internal,
+            ReposErrorKind::Constraints(validation_errors) => ErrorKind::InvalidInput(validation_errors),
         }
     }
 }

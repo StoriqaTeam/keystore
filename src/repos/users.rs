@@ -27,11 +27,15 @@ impl<'a> UsersRepo for UsersRepoImpl {
     }
 
     fn create(&self, payload: NewUser) -> Result<User, Error> {
+        let payload_clone = payload.clone();
         with_tls_connection(|conn| {
             diesel::insert_into(users)
                 .values(payload.clone())
                 .get_result::<User>(conn)
-                .map_err(ectx!(ErrorKind::Internal => payload))
+                .map_err(move |e| {
+                    let kind = ErrorKind::from_diesel(&e);
+                    ectx!(err e, kind => payload_clone)
+                })
         })
     }
 }

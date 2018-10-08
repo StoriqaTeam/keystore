@@ -35,7 +35,7 @@ impl<E: DbExecutor> AuthService for AuthServiceImpl<E> {
         Box::new(self.db_executor.execute(move || {
             users_repo
                 .find_user_by_authentication_token(token)
-                .map_err(ectx!(ErrorKind::Internal => token_clone))
+                .map_err(ectx!(convert => token_clone))
                 .and_then(move |maybe_user| maybe_user.ok_or(ectx!(err ErrorContext::NoAuthToken, ErrorKind::Unauthorized => token_clone2)))
         }))
     }

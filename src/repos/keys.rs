@@ -25,11 +25,15 @@ impl KeysRepo for KeysRepoImpl {
     }
 
     fn create(&self, payload: NewKey) -> Result<Key, Error> {
-        with_tls_connection(|conn| {
+        let payload_clone = payload.clone();
+        with_tls_connection(move |conn| {
             diesel::insert_into(keys)
                 .values(payload.clone())
                 .get_result::<Key>(conn)
-                .map_err(ectx!(ErrorKind::Internal => payload))
+                .map_err(move |e| {
+                    let kind = ErrorKind::from_diesel(&e);
+                    ectx!(err e, kind => payload_clone)
+                })
         })
     }
 }
