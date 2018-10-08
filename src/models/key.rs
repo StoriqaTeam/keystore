@@ -33,12 +33,12 @@ impl PrivateKey {
 
 #[derive(Debug, Serialize, Deserialize, FromSqlRow, AsExpression, Clone)]
 #[sql_type = "VarChar"]
-pub struct BlockChainAddress(String);
-derive_newtype_sql!(blockchain_address, VarChar, BlockChainAddress, BlockChainAddress);
+pub struct BlockchainAddress(String);
+derive_newtype_sql!(blockchain_address, VarChar, BlockchainAddress, BlockchainAddress);
 
-impl BlockChainAddress {
+impl BlockchainAddress {
     pub fn new(data: String) -> Self {
-        BlockChainAddress(data)
+        BlockchainAddress(data)
     }
 }
 
@@ -46,7 +46,7 @@ impl BlockChainAddress {
 pub struct Key {
     pub id: KeyId,
     pub private_key: PrivateKey,
-    pub blockchain_address: BlockChainAddress,
+    pub blockchain_address: BlockchainAddress,
     pub currency: Currency,
     pub owner_id: UserId,
     pub created_at: SystemTime,
@@ -58,7 +58,7 @@ pub struct Key {
 pub struct NewKey {
     pub id: KeyId,
     pub private_key: PrivateKey,
-    pub blockchain_address: BlockChainAddress,
+    pub blockchain_address: BlockchainAddress,
     pub currency: Currency,
     pub owner_id: UserId,
 }

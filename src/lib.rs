@@ -19,6 +19,7 @@ extern crate sentry;
 
 extern crate base64;
 extern crate config as config_crate;
+extern crate ethkey;
 extern crate futures;
 extern crate futures_cpupool;
 extern crate hyper;
