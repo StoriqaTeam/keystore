@@ -4,89 +4,68 @@ use super::auth::AuthService;
 use super::error::*;
 use super::ServiceFuture;
 use blockchain::KeyGenerator;
-use futures_cpupool::CpuPool;
 use models::*;
 use prelude::*;
-use repos::KeysRepo;
+use repos::{DbExecutor, KeysRepo};
 
 pub trait KeysService: Send + Sync + 'static {
     fn list(&self, maybe_token: Option<AuthenticationToken>, offset: i64, limit: i64) -> ServiceFuture<Vec<Key>>;
     fn create(&self, maybe_token: Option<AuthenticationToken>, currency: Currency, id: KeyId) -> ServiceFuture<Key>;
 }
 
-pub struct KeysServiceImpl {
-    db_pool: PgPool,
+pub struct KeysServiceImpl<E: DbExecutor> {
     auth_service: Arc<AuthService>,
-    thread_pool: CpuPool,
-    keys_repo_factory: Arc<Fn(Arc<PgPooledConnection>) -> Box<KeysRepo> + Send + Sync>,
     key_generator: Arc<KeyGenerator>,
+    keys_repo: Arc<KeysRepo>,
+    db_executor: E,
 }
 
-impl KeysServiceImpl {
-    pub fn new(
-        db_pool: PgPool,
-        auth_service: Arc<AuthService>,
-        thread_pool: CpuPool,
-        keys_repo_factory: Arc<Fn(Arc<PgPooledConnection>) -> Box<KeysRepo> + Send + Sync>,
-        key_generator: Arc<KeyGenerator>,
-    ) -> Self {
+impl<E: DbExecutor> KeysServiceImpl<E> {
+    pub fn new(auth_service: Arc<AuthService>, key_generator: Arc<KeyGenerator>, keys_repo: Arc<KeysRepo>, db_executor: E) -> Self {
         Self {
-            db_pool,
             auth_service,
-            thread_pool,
-            keys_repo_factory,
             key_generator,
+            keys_repo,
+            db_executor,
         }
     }
 }
 
-impl KeysService for KeysServiceImpl {
+impl<E: DbExecutor> KeysService for KeysServiceImpl<E> {
     fn list(&self, maybe_token: Option<AuthenticationToken>, offset: i64, limit: i64) -> ServiceFuture<Vec<Key>> {
-        let keys_repo_factory = self.keys_repo_factory.clone();
-        let thread_pool = self.thread_pool.clone();
-        let db_pool = self.db_pool.clone();
+        let db_executor = self.db_executor.clone();
+        let keys_repo = self.keys_repo.clone();
         Box::new(self.auth_service.authenticate(maybe_token).and_then(move |user| {
-            thread_pool.spawn_fn(move || {
-                let user_id = user.id;
-                let user_id_clone = user_id.clone();
-                db_pool
-                    .get()
-                    .map_err(ectx!(ErrorSource::R2D2, ErrorKind::Internal))
-                    .and_then(|conn| {
-                        keys_repo_factory(Arc::new(conn))
-                            .list(user_id, offset, limit)
-                            .map_err(ectx!(ErrorKind::Internal => user_id_clone, offset, limit))
-                    })
+            let user_id = user.id.clone();
+            let user_id_clone = user_id.clone();
+            db_executor.execute(move || {
+                keys_repo
+                    .list(user_id, offset, limit)
+                    .map_err(ectx!(ErrorKind::Internal => user_id_clone, offset, limit))
             })
         }))
     }
 
     fn create(&self, maybe_token: Option<AuthenticationToken>, currency: Currency, id: KeyId) -> ServiceFuture<Key> {
-        let keys_repo_factory = self.keys_repo_factory.clone();
-        let thread_pool = self.thread_pool.clone();
-        let db_pool = self.db_pool.clone();
-        let key_generator = self.key_generator.clone();
+        let db_executor = self.db_executor.clone();
+        let keys_repo = self.keys_repo.clone();
         let id_clone = id.clone();
+        let key_generator = self.key_generator.clone();
         Box::new(self.auth_service.authenticate(maybe_token).and_then(move |user| {
-            thread_pool.spawn_fn(move || {
-                let owner_id = user.id;
-                let owner_id_clone = owner_id.clone();
-                db_pool
-                    .get()
-                    .map_err(ectx!(ErrorSource::R2D2, ErrorKind::Internal))
-                    .and_then(|conn| {
-                        let (private_key, blockchain_address) = key_generator.generate_key(currency);
-                        let new_key = NewKey {
-                            id,
-                            currency,
-                            owner_id,
-                            private_key,
-                            blockchain_address,
-                        };
-                        keys_repo_factory(Arc::new(conn))
-                            .create(new_key)
-                            .map_err(ectx!(ErrorKind::Internal => owner_id_clone, currency, id_clone))
-                    })
+            let owner_id = user.id;
+            let owner_id_clone = owner_id.clone();
+            db_executor.execute(move || {
+                let (private_key, blockchain_address) = key_generator.generate_key(currency);
+                let new_key = NewKey {
+                    id,
+                    currency,
+                    owner_id,
+                    private_key,
+                    blockchain_address,
+                };
+                keys_repo
+                    .create(new_key)
+                    .map_err(ectx!(ErrorKind::Internal => owner_id_clone, currency, id_clone))
             })
         }))
     }

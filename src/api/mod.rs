@@ -90,11 +90,10 @@ impl Service for ApiService {
                     let auth_service = Arc::new(AuthServiceImpl::new(Arc::new(UsersRepoImpl), db_executor.clone()));
                     let key_generator = Arc::new(KeyGeneratorImpl);
                     let keys_service = Arc::new(KeysServiceImpl::new(
-                        db_pool,
                         auth_service.clone(),
-                        thread_pool.clone(),
-                        Arc::new(|conn| Box::new(KeysRepoImpl::new(conn))),
                         key_generator.clone(),
+                        Arc::new(KeysRepoImpl),
+                        db_executor.clone(),
                     ));
 
                     let ctx = Context {
