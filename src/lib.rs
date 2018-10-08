@@ -53,7 +53,7 @@ use futures_cpupool::CpuPool;
 
 use self::models::NewUser;
 use self::prelude::*;
-use self::repos::{DbExecutor, DbExecutorImpl, UsersRepo, UsersRepoImpl};
+use self::repos::{DbExecutor, DbExecutorImpl, Error as ReposError, UsersRepo, UsersRepoImpl};
 use config::Config;
 
 pub fn hello() {
@@ -79,7 +79,7 @@ pub fn create_user(name: &str) {
     let db_executor = DbExecutorImpl::new(db_pool, cpu_pool);
     let mut new_user: NewUser = Default::default();
     new_user.name = name.to_string();
-    let fut = db_executor.execute(move || {
+    let fut = db_executor.execute(move || -> Result<(), ReposError> {
         let user = users_repo.create(new_user).expect("Failed to create user");
         println!("{}", user.authentication_token.raw());
         Ok(())

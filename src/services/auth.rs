@@ -33,17 +33,14 @@ impl<E: DbExecutor> AuthService for AuthServiceImpl<E> {
         let users_repo = self.users_repo.clone();
         let token_clone = token.clone();
         let token_clone2 = token.clone();
-        Box::new(
-            self.db_executor
-                .execute(move || {
-                    users_repo
-                        .find_user_by_authentication_token(token)
-                        // .map_err(ectx!(ErrorKind::Internal => token_clone))
-                        .and_then(move |maybe_user| {
-                            // maybe_user.ok_or(ectx!(err ErrorContext::NoAuthToken, ErrorKind::Unauthorized => token_clone2))
-                            maybe_user.ok_or(ectx!(err DieselErrorKind::Internal, DieselErrorKind::Internal => token_clone2))
-                        })
-                }).map_err(ectx!(ErrorKind::Internal => token_clone)),
-        )
+        Box::new(self.db_executor.execute(move || -> Result<User, Error> {
+            users_repo
+                .find_user_by_authentication_token(token)
+                .map_err(ectx!(ErrorKind::Internal => token_clone))
+                .and_then(move |maybe_user| {
+                    maybe_user.ok_or(ectx!(err ErrorContext::NoAuthToken, ErrorKind::Unauthorized => token_clone2))
+                    // maybe_user.ok_or(ectx!(err DieselErrorKind::Internal, DieselErrorKind::Internal => token_clone2))
+                })
+        }))
     }
 }
