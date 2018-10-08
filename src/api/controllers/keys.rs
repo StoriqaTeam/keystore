@@ -1,11 +1,12 @@
 use super::super::error::*;
 use super::super::requests::*;
 use super::super::responses::*;
-use super::super::utils::response_with_model;
+use super::super::utils::{parse_body, response_with_model};
 use super::Context;
 use super::ControllerFuture;
 use failure::Fail;
 use futures::prelude::*;
+use models::*;
 use serde_qs;
 
 pub fn get_keys(ctx: &Context) -> ControllerFuture {
@@ -41,24 +42,26 @@ pub fn get_keys(ctx: &Context) -> ControllerFuture {
 }
 
 pub fn post_keys(ctx: &Context) -> ControllerFuture {
-    unimplemented!()
-    // let keys_service = ctx.keys_service.clone();
-    // let maybe_token = ctx.get_auth_token();
-    // Box::new(
-    //     parse_body::<PostKeysRequest>(ctx.body.clone())
-    //         .and_then(move |input| {
-    //             let input_clone = input.clone();
-    //             keys_service
-    //                 .list(maybe_token, input.offset, input.limit)
-    //                 .map_err(ectx!(convert => input_clone))
-    //         }).and_then(|keys| {
-    //             let keys: Vec<KeyResponse> = keys
-    //                 .iter()
-    //                 .map(|key| KeyResponse {
-    //                     address: key.address,
-    //                     currency: key.currency,
-    //                 }).collect();
-    //             response_with_model(&keys)
-    //         }),
-    // )
+    let keys_service = ctx.keys_service.clone();
+    let maybe_token = ctx.get_auth_token();
+    Box::new(
+        parse_body::<PostKeysRequest>(ctx.body.clone())
+            .and_then(move |input| {
+                let input_clone = input.clone();
+                keys_service
+                    .create(maybe_token, input.currency, input.id)
+                    .map_err(ectx!(convert => input_clone))
+            }).and_then(|key| {
+                let Key {
+                    blockchain_address,
+                    currency,
+                    ..
+                } = key;
+                let key_response = KeyResponse {
+                    blockchain_address,
+                    currency,
+                };
+                response_with_model(&key_response)
+            }),
+    )
 }
