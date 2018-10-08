@@ -29,6 +29,8 @@ extern crate regex;
 extern crate serde;
 extern crate serde_json;
 extern crate serde_qs;
+#[cfg(test)]
+extern crate tokio_core;
 extern crate uuid;
 extern crate validator;
 

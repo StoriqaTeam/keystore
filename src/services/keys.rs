@@ -77,26 +77,74 @@ mod tests {
     use blockchain::*;
     use repos::*;
     use services::*;
+    use tokio_core::reactor::Core;
     use {create_db_pool, get_config};
 
     #[test]
     fn test_create() {
-        // let db_pool = create_db_pool(&get_config());
-        // let users_repo = UsersRepoMock::new();
-        // let new_user = NewUser::default();
-        // let token = new_user.authentication_token.clone();
-        // let _ = users_repo.create(new_user);
-        // let keys_repo_mock = KeysRepoMock::new();
-        // let auth_service = Arc::new(AuthServiceMock::new(vec![token.clone()]));
-        // let thread_pool = CpuPool::new(1);
-        // let key_generator = Arc::new(KeyGeneratorMock);
-        // let keys_repo_factory = Arc::new(move |_| -> Box<KeysRepo> { Box::new(keys_repo_mock.clone()) });
-        // let keys_service = KeysServiceImpl::new(db_pool, auth_service, thread_pool, keys_repo_factory, key_generator);
+        let new_user = NewUser::default();
+        let token = new_user.authentication_token.clone();
+        let auth_service = Arc::new(AuthServiceMock::new(vec![token.clone()]));
+        let key_generator = Arc::new(KeyGeneratorMock);
+        let keys_repo = Arc::new(KeysRepoMock::new());
+        let db_executor = DbExecutorMock::new();
+        let keys_service = KeysServiceImpl::new(auth_service, key_generator, keys_repo, db_executor);
+        let mut core = Core::new().unwrap();
+
+        // creates with right token
+        let keys_count = core.run(keys_service.list(Some(token.clone()), 0, 100)).unwrap().len();
+        assert_eq!(keys_count, 0);
+        let key_id = KeyId::default();
+        let res = core.run(keys_service.create(Some(token.clone()), Currency::Eth, key_id.clone()));
+        assert_eq!(res.is_ok(), true);
+        let keys = core.run(keys_service.list(Some(token.clone()), 0, 100)).unwrap();
+        assert_eq!(keys[0].id, key_id.clone());
+        assert_eq!(keys.len(), 1);
+
+        // doesn't create with wrong token
+        let auth_token2 = NewUser::default().authentication_token;
+        let key_id = KeyId::default();
+        let res = core.run(keys_service.create(Some(auth_token2.clone()), Currency::Eth, key_id.clone()));
+        assert_eq!(res.is_err(), true);
+        let keys_count = core.run(keys_service.list(Some(token.clone()), 0, 100)).unwrap().len();
+        assert_eq!(keys_count, 1);
+
+        // doesn't create with no token
+        let res = core.run(keys_service.create(None, Currency::Eth, key_id.clone()));
+        assert_eq!(res.is_err(), true);
+        let keys_count = core.run(keys_service.list(Some(token.clone()), 0, 100)).unwrap().len();
+        assert_eq!(keys_count, 1);
+    }
+
+    #[test]
+    fn test_list() {
+        let new_user = NewUser::default();
+        let token = new_user.authentication_token.clone();
+        let auth_service = Arc::new(AuthServiceMock::new(vec![token.clone()]));
+        let key_generator = Arc::new(KeyGeneratorMock);
+        let keys_repo = Arc::new(KeysRepoMock::new());
+        let db_executor = DbExecutorMock::new();
+        let keys_service = KeysServiceImpl::new(auth_service, key_generator, keys_repo, db_executor);
+        let mut core = Core::new().unwrap();
+
+        // lists with right token
+        let keys_count = core.run(keys_service.list(Some(token.clone()), 0, 100)).unwrap().len();
+        assert_eq!(keys_count, 0);
+        let key_id = KeyId::default();
+        let res = core.run(keys_service.create(Some(token.clone()), Currency::Eth, key_id.clone()));
+        assert_eq!(res.is_ok(), true);
+        let keys = core.run(keys_service.list(Some(token.clone()), 0, 100)).unwrap();
+        assert_eq!(keys[0].id, key_id.clone());
+        assert_eq!(keys.len(), 1);
+
+        // doesn't list with wrong token
+        let auth_token2 = NewUser::default().authentication_token;
+        let key_id = KeyId::default();
+        let res = core.run(keys_service.list(Some(auth_token2.clone()), 0, 100));
+        assert_eq!(res.is_err(), true);
+
+        // doesn't list with no token
+        let res = core.run(keys_service.list(None, 0, 100));
+        assert_eq!(res.is_err(), true);
     }
 }
-
-// db_pool: PgPool,
-// auth_service: Arc<AuthService>,
-// thread_pool: CpuPool,
-// keys_repo_factory: Arc<for<'a> Fn(&'a PgConnection) -> Box<KeysRepo + 'a> + Send + Sync>,
-// key_generator: Arc<KeyGenerator>,

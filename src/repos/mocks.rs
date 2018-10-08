@@ -84,6 +84,12 @@ impl UsersRepo for UsersRepoMock {
 #[derive(Clone)]
 pub struct DbExecutorMock;
 
+impl DbExecutorMock {
+    pub fn new() -> Self {
+        DbExecutorMock
+    }
+}
+
 impl DbExecutor for DbExecutorMock {
     fn execute<F, T, E>(&self, f: F) -> Box<Future<Item = T, Error = E> + Send + 'static>
     where
