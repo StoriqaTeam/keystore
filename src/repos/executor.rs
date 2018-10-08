@@ -1,4 +1,3 @@
-use std::borrow::BorrowMut;
 use std::cell::RefCell;
 
 use diesel::pg::PgConnection;
@@ -9,19 +8,40 @@ use super::error::*;
 use prelude::*;
 
 thread_local! {
-    static DB_CONN: RefCell<Option<PgPooledConnection>> = RefCell::new(None)
+    pub static DB_CONN: RefCell<Option<PgPooledConnection>> = RefCell::new(None)
 }
 
-pub trait Repo: Clone + Send + Sync + 'static {
-    fn get_db_pool(&self) -> PgPool;
-    fn get_db_thread_pool(&self) -> CpuPool;
+pub trait DbExecutor: Clone + Send + Sync + 'static {
+    fn execute<F, T>(&self, f: F) -> Box<Future<Item = T, Error = Error> + Send + 'static>
+    where
+        T: Send + 'static,
+        F: FnOnce() -> Result<T, Error> + Send + 'static;
+    fn execute_transaction<F, T>(&self, f: F) -> Box<Future<Item = T, Error = Error> + Send + 'static>
+    where
+        T: Send + 'static,
+        F: FnOnce() -> Result<T, Error> + Send + 'static;
+}
+
+#[derive(Clone)]
+pub struct DbExecutorImpl {
+    db_pool: PgPool,
+    db_thread_pool: CpuPool,
+}
+
+impl DbExecutorImpl {
+    pub fn new(db_pool: PgPool, db_thread_pool: CpuPool) -> Self {
+        Self { db_pool, db_thread_pool }
+    }
+}
+
+impl DbExecutor for DbExecutorImpl {
     fn execute<F, T>(&self, f: F) -> Box<Future<Item = T, Error = Error> + Send + 'static>
     where
         T: Send + 'static,
         F: FnOnce() -> Result<T, Error> + Send + 'static,
     {
-        let db_pool = self.get_db_pool().clone();
-        Box::new(self.get_db_thread_pool().spawn_fn(move || {
+        let db_pool = self.db_pool.clone();
+        Box::new(self.db_thread_pool.spawn_fn(move || {
             DB_CONN.with(move |maybe_conn_cell| -> Result<T, Error> {
                 {
                     let mut maybe_conn = maybe_conn_cell.borrow_mut();
@@ -42,9 +62,8 @@ pub trait Repo: Clone + Send + Sync + 'static {
         T: Send + 'static,
         F: FnOnce() -> Result<T, Error> + Send + 'static,
     {
-        let db_pool = self.get_db_pool().clone();
-        let self_clone = self.clone();
-        Box::new(self.get_db_thread_pool().spawn_fn(move || {
+        let db_pool = self.db_pool.clone();
+        Box::new(self.db_thread_pool.spawn_fn(move || {
             DB_CONN.with(move |maybe_conn_cell| -> Result<T, Error> {
                 {
                     let mut maybe_conn = maybe_conn_cell.borrow_mut();
@@ -55,7 +74,7 @@ pub trait Repo: Clone + Send + Sync + 'static {
                         }
                     }
                 }
-                self_clone.with_tls_connection(move |conn| {
+                with_tls_connection(move |conn| {
                     let mut e: Error = ErrorKind::Internal.into();
                     conn.transaction(|| {
                         f().map_err(|err| {
@@ -67,20 +86,26 @@ pub trait Repo: Clone + Send + Sync + 'static {
             })
         }))
     }
+}
 
-    fn with_tls_connection<F, T>(&self, f: F) -> Result<T, Error>
-    where
-        F: FnOnce(&PgConnection) -> Result<T, Error>,
-    {
-        DB_CONN.with(|maybe_conn_cell| -> Result<T, Error> {
+pub fn with_tls_connection<F, T>(f: F) -> Result<T, Error>
+where
+    F: FnOnce(&PgConnection) -> Result<T, Error>,
+{
+    DB_CONN.with(|maybe_conn_cell| -> Result<T, Error> {
+        let conn: PgPooledConnection;
+        {
             let mut maybe_conn = maybe_conn_cell.borrow_mut();
             if maybe_conn.is_none() {
                 return Err(ectx!(err ErrorKind::Internal, ErrorContext::Connection, ErrorKind::Internal));
             }
-            let conn = maybe_conn.take().unwrap();
-            let res = f(&conn);
+            conn = maybe_conn.take().unwrap();
+        }
+        let res = f(&conn);
+        {
+            let mut maybe_conn = maybe_conn_cell.borrow_mut();
             *maybe_conn = Some(conn);
-            res
-        })
-    }
+        }
+        res
+    })
 }

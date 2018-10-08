@@ -27,7 +27,7 @@ use self::controllers::*;
 use self::error::*;
 use blockchain::KeyGeneratorImpl;
 use prelude::*;
-use repos::{KeysRepoImpl, UsersRepoImpl};
+use repos::{DbExecutorImpl, KeysRepoImpl, UsersRepoImpl};
 use services::{AuthServiceImpl, KeysServiceImpl};
 
 #[derive(Clone)]
@@ -76,6 +76,7 @@ impl Service for ApiService {
         let (parts, http_body) = req.into_parts();
         let db_pool = self.db_pool.clone();
         let thread_pool = self.cpu_pool.clone();
+        let db_executor = DbExecutorImpl::new(db_pool.clone(), thread_pool.clone());
         Box::new(
             read_body(http_body)
                 .map_err(ectx!(ErrorSource::Hyper, ErrorKind::Internal))
@@ -86,11 +87,7 @@ impl Service for ApiService {
                         _ => not_found,
                     };
 
-                    let auth_service = Arc::new(AuthServiceImpl::new(
-                        db_pool.clone(),
-                        thread_pool.clone(),
-                        UsersRepoImpl::new(db_pool.clone(), thread_pool.clone()),
-                    ));
+                    let auth_service = Arc::new(AuthServiceImpl::new(Arc::new(UsersRepoImpl), db_executor.clone()));
                     let key_generator = Arc::new(KeyGeneratorImpl);
                     let keys_service = Arc::new(KeysServiceImpl::new(
                         db_pool,

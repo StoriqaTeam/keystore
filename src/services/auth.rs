@@ -6,30 +6,25 @@ use futures::future;
 use futures_cpupool::CpuPool;
 use models::*;
 use prelude::*;
-use repos::{ErrorKind as DieselErrorKind, UsersRepo};
+use repos::{DbExecutor, ErrorKind as DieselErrorKind, UsersRepo};
 
 pub trait AuthService: Send + Sync + 'static {
     fn authenticate(&self, maybe_token: Option<AuthenticationToken>) -> ServiceFuture<User>;
 }
 
 #[derive(Clone)]
-pub struct AuthServiceImpl<U: UsersRepo> {
-    db_pool: PgPool,
-    thread_pool: CpuPool,
-    users_repo: U,
+pub struct AuthServiceImpl<E: DbExecutor> {
+    users_repo: Arc<UsersRepo>,
+    db_executor: E,
 }
 
-impl<U: UsersRepo> AuthServiceImpl<U> {
-    pub fn new(db_pool: PgPool, thread_pool: CpuPool, users_repo: U) -> Self {
-        AuthServiceImpl {
-            db_pool,
-            thread_pool,
-            users_repo,
-        }
+impl<E: DbExecutor> AuthServiceImpl<E> {
+    pub fn new(users_repo: Arc<UsersRepo>, db_executor: E) -> Self {
+        AuthServiceImpl { users_repo, db_executor }
     }
 }
 
-impl<U: UsersRepo> AuthService for AuthServiceImpl<U> {
+impl<E: DbExecutor> AuthService for AuthServiceImpl<E> {
     fn authenticate(&self, maybe_token: Option<AuthenticationToken>) -> ServiceFuture<User> {
         let token = match maybe_token {
             Some(t) => t,
@@ -39,7 +34,7 @@ impl<U: UsersRepo> AuthService for AuthServiceImpl<U> {
         let token_clone = token.clone();
         let token_clone2 = token.clone();
         Box::new(
-            self.users_repo
+            self.db_executor
                 .execute(move || {
                     users_repo
                         .find_user_by_authentication_token(token)
