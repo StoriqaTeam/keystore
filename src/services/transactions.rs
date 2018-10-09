@@ -38,6 +38,7 @@ impl<E: DbExecutor> TransactionsService for TransactionsServiceImpl<E> {
         Box::new(self.auth_service.authenticate(maybe_token).and_then(move |user| {
             let user_id = user.id.clone();
             let user_id_clone = user_id.clone();
+            let user_id_clone2 = user_id.clone();
             let blockchain_address = transaction.from.clone();
             let blockchain_address_clone = blockchain_address.clone();
             db_executor.execute_transaction(move || {
@@ -45,7 +46,7 @@ impl<E: DbExecutor> TransactionsService for TransactionsServiceImpl<E> {
                     .find_by_address(user_id, blockchain_address)
                     .map_err(ectx!(ErrorKind::Internal => user_id_clone))
                     .and_then(|maybe_key| {
-                        maybe_key.ok_or(ectx!(err ErrorContext::NoWallet, ErrorKind::NotFound => user_id_clone, blockchain_address_clone))
+                        maybe_key.ok_or(ectx!(err ErrorContext::NoWallet, ErrorKind::NotFound => user_id_clone2, blockchain_address_clone))
                     }).and_then(move |key| {
                         signer
                             .sign(key.private_key, transaction)

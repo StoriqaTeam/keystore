@@ -14,3 +14,9 @@ pub struct KeyResponse {
     pub currency: Currency,
     pub blockchain_address: BlockchainAddress,
 }
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct PostTransactionsResponse {
+    pub raw: RawTransaction,
+}

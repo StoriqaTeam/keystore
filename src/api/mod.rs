@@ -25,11 +25,11 @@ use r2d2;
 
 use self::controllers::*;
 use self::error::*;
-use blockchain::KeyGeneratorImpl;
+use blockchain::{BlockchainSignerImpl, KeyGeneratorImpl};
 use prelude::*;
 use repos::{DbExecutorImpl, KeysRepoImpl, UsersRepoImpl};
 use serde_json;
-use services::{AuthServiceImpl, KeysServiceImpl};
+use services::{AuthServiceImpl, KeysServiceImpl, TransactionsServiceImpl};
 
 #[derive(Clone)]
 pub struct ApiService {
@@ -85,15 +85,25 @@ impl Service for ApiService {
                     let router = router! {
                         GET /v1/keys => get_keys,
                         POST /v1/keys => post_keys,
+                        POST /v1/transactions => post_transactions,
                         _ => not_found,
                     };
 
                     let auth_service = Arc::new(AuthServiceImpl::new(Arc::new(UsersRepoImpl), db_executor.clone()));
                     let key_generator = Arc::new(KeyGeneratorImpl);
+                    let blockchain_signer = Arc::new(BlockchainSignerImpl::default());
+                    let keys_repo = Arc::new(KeysRepoImpl);
                     let keys_service = Arc::new(KeysServiceImpl::new(
                         auth_service.clone(),
                         key_generator.clone(),
-                        Arc::new(KeysRepoImpl),
+                        keys_repo.clone(),
+                        db_executor.clone(),
+                    ));
+
+                    let transactions_service = Arc::new(TransactionsServiceImpl::new(
+                        auth_service.clone(),
+                        keys_repo.clone(),
+                        blockchain_signer.clone(),
                         db_executor.clone(),
                     ));
 
@@ -103,6 +113,7 @@ impl Service for ApiService {
                         uri: parts.uri.clone(),
                         headers: parts.headers,
                         keys_service,
+                        transactions_service,
                     };
 
                     debug!("Received request {}", ctx);

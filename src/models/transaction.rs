@@ -27,7 +27,7 @@ impl Debug for TransactionId {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct RawTransaction(String);
 
 #[derive(Debug, Serialize, Clone)]

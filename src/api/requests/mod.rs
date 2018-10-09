@@ -49,15 +49,3 @@ impl From<PostTransactionsRequest> for UnsignedTransaction {
         }
     }
 }
-
-#[derive(Debug, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct UnsignedTransaction {
-    pub id: TransactionId,
-    pub from: BlockchainAddress,
-    pub to: BlockchainAddress,
-    pub currency: Currency,
-    pub value: Amount,
-    pub fee_price: Amount,
-    pub nonce: Option<u64>,
-}
