@@ -101,7 +101,7 @@ impl DbExecutor for DbExecutorImpl {
         E: From<Error> + Fail,
     {
         self.execute_transaction(|| {
-            let _ = f();
+            let _ = f()?;
             let e: Error = ErrorKind::Internal.into();
             Err(e.into())
         })
