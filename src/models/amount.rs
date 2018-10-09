@@ -1,4 +1,6 @@
 use std::error::Error as StdError;
+use std::fmt;
+use std::fmt::LowerHex;
 use std::io::prelude::*;
 
 use diesel::deserialize::{self, FromSql};
@@ -6,6 +8,7 @@ use diesel::pg::data_types::PgNumeric;
 use diesel::pg::Pg;
 use diesel::serialize::{self, Output, ToSql};
 use diesel::sql_types::Numeric;
+use ethereum_types::U256;
 
 /// This is a wrapper for monetary amounts in blockchain.
 /// You have to be careful that it has a limited amount of 38 significant digits
@@ -27,6 +30,19 @@ impl Amount {
     /// Make saubtraction, return None on overflow
     fn checked_sub(&self, other: Amount) -> Option<Self> {
         self.0.checked_sub(other.0).map(Amount)
+    }
+}
+
+impl LowerHex for Amount {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        LowerHex::fmt(&self.0, f)
+    }
+}
+
+impl From<Amount> for U256 {
+    fn from(a: Amount) -> U256 {
+        let string = format!("{}", a.0);
+        U256::from_dec_str(&string).unwrap()
     }
 }
 
@@ -303,4 +319,31 @@ mod tests {
         assert_eq!(Amount(8).checked_sub(Amount(11)), None);
     }
 
+    #[test]
+    fn test_ethereum_u256() {
+        let cases = [
+            1000000010000000000000000000u128,
+            354890005000010004355680400034758u128,
+            0u128,
+            1u128,
+            2u128,
+            10u128,
+            9999u128,
+            10000u128,
+            10001u128,
+            11111u128,
+            55555555u128,
+            99999999u128,
+            12379871239800000000u128,
+            340282366920938463463374607431768211454u128,
+            340282366920938463463374607431768211455u128,
+        ];
+        for case in cases.iter() {
+            let amount = Amount(*case as u128);
+            let u256: U256 = amount.into();
+            let u256_hex = format!("{:x}", u256);
+            let amount_hex = format!("{:x}", amount);
+            assert_eq!(amount_hex, u256_hex);
+        }
+    }
 }
