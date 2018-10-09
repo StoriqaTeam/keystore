@@ -38,7 +38,7 @@ impl<E: DbExecutor> KeysService for KeysServiceImpl<E> {
         Box::new(self.auth_service.authenticate(maybe_token).and_then(move |user| {
             let user_id = user.id.clone();
             let user_id_clone = user_id.clone();
-            db_executor.execute(move || {
+            db_executor.execute_transaction(move || {
                 keys_repo
                     .list(user_id, offset, limit)
                     .map_err(ectx!(ErrorKind::Internal => user_id_clone, offset, limit))
