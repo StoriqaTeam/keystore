@@ -125,6 +125,15 @@ impl Service for ApiService {
                             .body(Body::from(r#"{"description": "Unauthorized"}"#))
                             .unwrap())
                     }
+                    ErrorKind::NotFound => {
+                        log_error(&e);
+                        Ok(Response::builder()
+                            .status(404)
+                            .header("Content-Type", "application/json")
+                            .body(Body::from(r#"{"description": "Not found"}"#))
+                            .unwrap())
+                    }
+
                     ErrorKind::UnprocessableEntity(errors) => {
                         log_warn(&e);
                         let errors =

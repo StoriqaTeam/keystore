@@ -18,6 +18,8 @@ pub enum ErrorKind {
     Unauthorized,
     #[fail(display = "service error - malformed input")]
     MalformedInput,
+    #[fail(display = "service error - not found")]
+    NotFound,
     #[fail(display = "service error - invalid input, errors: {}", _0)]
     InvalidInput(ValidationErrors),
     #[fail(display = "service error - internal error")]
@@ -36,6 +38,10 @@ pub enum ErrorSource {
 pub enum ErrorContext {
     #[fail(display = "service error context - no auth token received")]
     NoAuthToken,
+    #[fail(display = "service error context - no wallet with this address found")]
+    NoWallet,
+    #[fail(display = "service error context - signing transaction")]
+    SigningTransaction,
 }
 
 derive_error_impls!();

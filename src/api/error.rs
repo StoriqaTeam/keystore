@@ -16,6 +16,8 @@ pub enum ErrorKind {
     Unauthorized,
     #[fail(display = "controller error - bad request")]
     BadRequest,
+    #[fail(display = "controller error - not found")]
+    NotFound,
     #[fail(display = "controller error - unprocessable entity")]
     UnprocessableEntity(ValidationErrors),
     #[fail(display = "controller error - internal error")]
@@ -55,6 +57,7 @@ impl From<ServiceErrorKind> for ErrorKind {
             ServiceErrorKind::Unauthorized => ErrorKind::Unauthorized,
             ServiceErrorKind::MalformedInput => ErrorKind::BadRequest,
             ServiceErrorKind::InvalidInput(validation_errors) => ErrorKind::UnprocessableEntity(validation_errors),
+            ServiceErrorKind::NotFound => ErrorKind::NotFound,
         }
     }
 }

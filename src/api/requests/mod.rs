@@ -13,3 +13,51 @@ pub struct GetKeysParams {
     pub limit: i64,
     pub offset: i64,
 }
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct PostTransactionsRequest {
+    pub id: TransactionId,
+    pub from: BlockchainAddress,
+    pub to: BlockchainAddress,
+    pub currency: Currency,
+    pub value: Amount,
+    pub fee_price: Amount,
+    pub nonce: Option<u64>,
+}
+
+impl From<PostTransactionsRequest> for UnsignedTransaction {
+    fn from(req: PostTransactionsRequest) -> Self {
+        let PostTransactionsRequest {
+            id,
+            from,
+            to,
+            currency,
+            value,
+            fee_price,
+            nonce,
+        } = req;
+
+        UnsignedTransaction {
+            id,
+            from,
+            to,
+            currency,
+            value,
+            fee_price,
+            nonce,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct UnsignedTransaction {
+    pub id: TransactionId,
+    pub from: BlockchainAddress,
+    pub to: BlockchainAddress,
+    pub currency: Currency,
+    pub value: Amount,
+    pub fee_price: Amount,
+    pub nonce: Option<u64>,
+}
