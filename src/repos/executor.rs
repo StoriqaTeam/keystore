@@ -45,28 +45,10 @@ impl DbExecutor for DbExecutorImpl {
     {
         let db_pool = self.db_pool.clone();
         Box::new(self.db_thread_pool.spawn_fn(move || {
-            DB_CONN.with(move |maybe_conn_cell| -> Result<T, E> {
-                {
-                    let mut maybe_conn = maybe_conn_cell.borrow_mut();
-                    if maybe_conn.is_none() {
-                        match db_pool.get() {
-                            Ok(conn) => *maybe_conn = Some(conn),
-                            Err(e) => {
-                                let e: Error = ectx!(err e, ErrorSource::R2D2, ErrorKind::Internal);
-                                return Err(e.into());
-                            }
-                        }
-                    }
-                }
-                f().map_err(|e| {
-                    let mut maybe_conn = maybe_conn_cell.borrow_mut();
-                    let is_broken = match *maybe_conn {
-                        Some(ref conn) => conn.execute("SELECT 1").is_err(),
-                        None => false,
-                    };
-                    if is_broken {
-                        *maybe_conn = None;
-                    }
+            DB_CONN.with(move |tls_conn_cell| -> Result<T, E> {
+                let _ = put_connection_into_tls(db_pool, tls_conn_cell)?;
+                f().map_err(move |e| {
+                    drop_tls_connection_if_broken(tls_conn_cell);
                     e
                 })
             })
@@ -81,31 +63,13 @@ impl DbExecutor for DbExecutorImpl {
     {
         let db_pool = self.db_pool.clone();
         Box::new(self.db_thread_pool.spawn_fn(move || {
-            DB_CONN.with(move |maybe_conn_cell| -> Result<T, E> {
-                {
-                    let mut maybe_conn = maybe_conn_cell.borrow_mut();
-                    if maybe_conn.is_none() {
-                        match db_pool.get() {
-                            Ok(conn) => *maybe_conn = Some(conn),
-                            Err(e) => {
-                                let e: Error = ectx!(err e, ErrorSource::R2D2, ErrorKind::Internal);
-                                return Err(e.into());
-                            }
-                        }
-                    }
-                }
+            DB_CONN.with(move |tls_conn_cell| -> Result<T, E> {
+                let _ = put_connection_into_tls(db_pool, tls_conn_cell)?;
                 with_tls_connection(move |conn| {
                     conn.transaction::<_, FailureError, _>(|| f().map_err(From::from))
                         .map_err(ectx!(ErrorSource::Transaction, ErrorKind::Internal))
                 }).map_err(|e| {
-                    let mut maybe_conn = maybe_conn_cell.borrow_mut();
-                    let is_broken = match *maybe_conn {
-                        Some(ref conn) => conn.execute("SELECT 1").is_err(),
-                        None => false,
-                    };
-                    if is_broken {
-                        *maybe_conn = None;
-                    }
+                    drop_tls_connection_if_broken(tls_conn_cell);
                     e.into()
                 })
             })
@@ -118,8 +82,8 @@ where
     T: 'static,
     F: FnOnce(&PgConnection) -> Result<T, Error>,
 {
-    DB_CONN.with(|maybe_conn_cell| -> Result<T, Error> {
-        let maybe_conn = maybe_conn_cell.borrow();
+    DB_CONN.with(|tls_conn_cell| -> Result<T, Error> {
+        let maybe_conn = tls_conn_cell.borrow();
         if maybe_conn.is_none() {
             return Err(ectx!(err ErrorKind::Internal, ErrorContext::Connection, ErrorKind::Internal));
         }
@@ -130,4 +94,29 @@ where
             .ok_or(ectx!(try err e, ErrorContext::Connection, ErrorKind::Internal))?;
         f(conn_ref)
     })
+}
+
+fn put_connection_into_tls(db_pool: PgPool, tls_conn_cell: &RefCell<Option<PgPooledConnection>>) -> Result<(), Error> {
+    let mut maybe_conn = tls_conn_cell.borrow_mut();
+    if maybe_conn.is_none() {
+        match db_pool.get() {
+            Ok(conn) => *maybe_conn = Some(conn),
+            Err(e) => {
+                let e: Error = ectx!(err e, ErrorSource::R2D2, ErrorKind::Internal);
+                return Err(e.into());
+            }
+        }
+    }
+    Ok(())
+}
+
+fn drop_tls_connection_if_broken(tls_conn_cell: &RefCell<Option<PgPooledConnection>>) {
+    let mut maybe_conn = tls_conn_cell.borrow_mut();
+    let is_broken = match *maybe_conn {
+        Some(ref conn) => conn.execute("SELECT 1").is_err(),
+        None => false,
+    };
+    if is_broken {
+        *maybe_conn = None;
+    }
 }

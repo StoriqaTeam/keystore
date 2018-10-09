@@ -64,7 +64,7 @@ impl UsersRepoMock {
 impl UsersRepo for UsersRepoMock {
     fn find_user_by_authentication_token(&self, token: AuthenticationToken) -> Result<Option<User>, Error> {
         let data = self.data.lock().unwrap();
-        Ok(data.iter().filter(|x| x.authentication_token == token).nth(1).cloned())
+        Ok(data.iter().filter(|x| x.authentication_token == token).nth(0).cloned())
     }
 
     fn create(&self, payload: NewUser) -> Result<User, Error> {
