@@ -107,4 +107,14 @@ impl DbExecutor for DbExecutorMock {
     {
         Box::new(f().into_future())
     }
+
+    #[cfg(test)]
+    fn execute_test_transaction<F, T, E>(&self, f: F) -> Box<Future<Item = T, Error = E> + Send + 'static>
+    where
+        T: Send + 'static,
+        F: FnOnce() -> Result<T, E> + Send + 'static,
+        E: From<Error> + Send + 'static,
+    {
+        Box::new(f().into_future())
+    }
 }

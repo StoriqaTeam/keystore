@@ -22,6 +22,12 @@ pub trait DbExecutor: Clone + Send + Sync + 'static {
         T: Send + 'static,
         F: FnOnce() -> Result<T, E> + Send + 'static,
         E: From<Error> + Fail;
+    #[cfg(test)]
+    fn execute_test_transaction<F, T, E>(&self, f: F) -> Box<Future<Item = T, Error = E> + Send + 'static>
+    where
+        T: Send + 'static,
+        F: FnOnce() -> Result<T, E> + Send + 'static,
+        E: From<Error> + Fail;
 }
 
 #[derive(Clone)]
@@ -74,6 +80,20 @@ impl DbExecutor for DbExecutorImpl {
                 })
             })
         }))
+    }
+
+    #[cfg(test)]
+    fn execute_test_transaction<F, T, E>(&self, f: F) -> Box<Future<Item = T, Error = E> + Send + 'static>
+    where
+        T: Send + 'static,
+        F: FnOnce() -> Result<T, E> + Send + 'static,
+        E: From<Error> + Fail,
+    {
+        self.execute_test_transaction(|| {
+            f();
+            let e: Error = ErrorKind::Internal.into();
+            Err(e.into())
+        })
     }
 }
 
