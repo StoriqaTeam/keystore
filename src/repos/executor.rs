@@ -58,7 +58,17 @@ impl DbExecutor for DbExecutorImpl {
                         }
                     }
                 }
-                f()
+                f().map_err(|e| {
+                    let mut maybe_conn = maybe_conn_cell.borrow_mut();
+                    let is_broken = match *maybe_conn {
+                        Some(ref conn) => conn.execute("SELECT 1").is_err(),
+                        None => false,
+                    };
+                    if is_broken {
+                        *maybe_conn = None;
+                    }
+                    e
+                })
             })
         }))
     }
@@ -87,7 +97,17 @@ impl DbExecutor for DbExecutorImpl {
                 with_tls_connection(move |conn| {
                     conn.transaction::<_, FailureError, _>(|| f().map_err(From::from))
                         .map_err(ectx!(ErrorSource::Transaction, ErrorKind::Internal))
-                }).map_err(|e| e.into())
+                }).map_err(|e| {
+                    let mut maybe_conn = maybe_conn_cell.borrow_mut();
+                    let is_broken = match *maybe_conn {
+                        Some(ref conn) => conn.execute("SELECT 1").is_err(),
+                        None => false,
+                    };
+                    if is_broken {
+                        *maybe_conn = None;
+                    }
+                    e.into()
+                })
             })
         }))
     }
