@@ -11,17 +11,28 @@ thread_local! {
     pub static DB_CONN: RefCell<Option<PgPooledConnection>> = RefCell::new(None)
 }
 
+/// One of these methods should be used anytime you use Repo methods.
+/// It effectively put a db connection to thread local storage, so that repo can use it.
+/// This trait is also responsible for removing unhealthy connections from tls.
+/// I.e. it provides guarantees that repo inside DbExecor's method closure will get healthy connection
+/// or of not, DbExecutor will heal it next time.
 pub trait DbExecutor: Clone + Send + Sync + 'static {
+    /// Execute some statements, basically queries
     fn execute<F, T, E>(&self, f: F) -> Box<Future<Item = T, Error = E> + Send + 'static>
     where
         T: Send + 'static,
         F: FnOnce() -> Result<T, E> + Send + 'static,
         E: From<Error> + Fail;
+
+    /// Execute mutations and queries inside one transaction
     fn execute_transaction<F, T, E>(&self, f: F) -> Box<Future<Item = T, Error = E> + Send + 'static>
     where
         T: Send + 'static,
         F: FnOnce() -> Result<T, E> + Send + 'static,
         E: From<Error> + Fail;
+
+    /// Execute mutations that will be rolled back. This is useful for tests, when you
+    /// don't want to pollute your database
     #[cfg(test)]
     fn execute_test_transaction<F, T, E>(&self, f: F) -> Box<Future<Item = T, Error = E> + Send + 'static>
     where
@@ -54,7 +65,7 @@ impl DbExecutor for DbExecutorImpl {
             DB_CONN.with(move |tls_conn_cell| -> Result<T, E> {
                 let _ = put_connection_into_tls(db_pool, tls_conn_cell)?;
                 f().map_err(move |e| {
-                    drop_tls_connection_if_broken(tls_conn_cell);
+                    remove_connection_from_tls_if_broken(tls_conn_cell);
                     e
                 })
             })
@@ -75,7 +86,7 @@ impl DbExecutor for DbExecutorImpl {
                     conn.transaction::<_, FailureError, _>(|| f().map_err(From::from))
                         .map_err(ectx!(ErrorSource::Transaction, ErrorKind::Internal))
                 }).map_err(|e| {
-                    drop_tls_connection_if_broken(tls_conn_cell);
+                    remove_connection_from_tls_if_broken(tls_conn_cell);
                     e.into()
                 })
             })
@@ -97,6 +108,8 @@ impl DbExecutor for DbExecutorImpl {
     }
 }
 
+/// This method should be called inside repos for obtaining connections from
+/// thread local storage
 pub fn with_tls_connection<F, T>(f: F) -> Result<T, Error>
 where
     T: 'static,
@@ -107,15 +120,16 @@ where
         if maybe_conn.is_none() {
             return Err(ectx!(err ErrorKind::Internal, ErrorContext::Connection, ErrorKind::Internal));
         }
-        let e: Error = ErrorKind::Internal.into();
         let conn_ref = maybe_conn
             .as_ref()
             .take()
-            .ok_or(ectx!(try err e, ErrorContext::Connection, ErrorKind::Internal))?;
+            .ok_or(ectx!(try err ErrorKind::Internal, ErrorContext::Connection, ErrorKind::Internal))?;
         f(conn_ref)
     })
 }
 
+/// Checkout connection from db_pool and put it into thead local storage
+/// if there is no connection already in thread local storage
 fn put_connection_into_tls(db_pool: PgPool, tls_conn_cell: &RefCell<Option<PgPooledConnection>>) -> Result<(), Error> {
     let mut maybe_conn = tls_conn_cell.borrow_mut();
     if maybe_conn.is_none() {
@@ -130,7 +144,9 @@ fn put_connection_into_tls(db_pool: PgPool, tls_conn_cell: &RefCell<Option<PgPoo
     Ok(())
 }
 
-fn drop_tls_connection_if_broken(tls_conn_cell: &RefCell<Option<PgPooledConnection>>) {
+/// Check if connection is broken and if so - remove from tls.
+/// Select 1 is used for checking connection health, like in Diesel framework
+fn remove_connection_from_tls_if_broken(tls_conn_cell: &RefCell<Option<PgPooledConnection>>) {
     let mut maybe_conn = tls_conn_cell.borrow_mut();
     let is_broken = match *maybe_conn {
         Some(ref conn) => conn.execute("SELECT 1").is_err(),
