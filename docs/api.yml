@@ -5,7 +5,7 @@ servers:
 info:
   description: Private keys, transactions
   version: "1.0.0"
-  title: Accounts core
+  title: Keystore
   contact:
     email: a.karasev@storiqa.com
 tags:
@@ -14,7 +14,7 @@ tags:
   - name: transactions
     description: Managements of transactions
 paths:
-  /keys:
+  /users/{userId}/keys:
     get:
       summary: Returns list of existing adresses
       description: You need to be authenticated to use this method.
@@ -23,6 +23,7 @@ paths:
       tags:
         - keys
       parameters:
+        - $ref: '#/components/parameters/userIdParam'
         - $ref: '#/components/parameters/offsetParam'
         - $ref: '#/components/parameters/limitParam'
       responses:
@@ -42,6 +43,8 @@ paths:
         - Bearer: []
       tags:
         - keys
+      parameters:
+        - $ref: '#/components/parameters/userIdParam'
       responses:
         200:
           description: Ok
@@ -57,7 +60,7 @@ paths:
             schema:
               $ref: '#/components/schemas/KeyCreateInput'
 
-  /transactions:
+  /users/{userId}/transactions:
     post:
       summary: Prepares and Signs a transaction
       description: You need to be authenticated to use this method.
@@ -65,15 +68,18 @@ paths:
         - Bearer: []
       tags:
         - transactions
+      parameters:
+        - $ref: '#/components/parameters/userIdParam'
       responses:
         200:
           description: Ok
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Transaction'
+                type: object
+                properties:
+                  raw:
+                    $ref: '#/components/schemas/RawTransaction'
       requestBody:
         content:
           application/json:
@@ -189,21 +195,47 @@ components:
           $ref: '#/components/schemas/Currency'
     TransactionCreateInput:
       type: object
+      required:
+        - feePrice
+        - value
+        - currency
+        - from
+        - to
       properties:
         from:
-          $ref: '#/components/schemas/BlockchainAddress'
+          type: string
+          description: Blockchain address.
+          example: '0xf79867895ad58d6d'
         to:
-          $ref: '#/components/schemas/BlockchainAddress'
+          type: string
+          description: Blockchain address.
+          example: '0xed78f5e9df3ed967f4'
         currency:
           $ref: '#/components/schemas/Currency'
-    Transaction:
+        value:
+          type: integer
+          description: Value of transaction in wei / satoshis for transaction (value up to 10^38)
+          example: 1890000000000000000
+        feePrice:
+          type: integer
+          description: Gas price in wei for ethereum or satoshis per byte for bitcoin (value up to 10^38)
+          example: 89000000000000
+        nonce:
+          type: integer
+          description: Nonce from ethereum account (required for ethereum and ERC20 tokens) (value up to 10^38)
+          example: 2
+    RawTransaction:
       type: string
-      description: Base64 encoded binary data
+      description: Binary data that fits 1 to 1 for node api
       example: "ugfdoinoac374noaiw75caowie7ao745b="
     Currency:
       type: string
       description: Coinmarketcap symbol in CAPS [source](https://coinmarketcap.com/)
       example: ETH
+    Uuid:
+      type: string
+      description: Uuid v4
+      example: '5188dde0-9dc3-461f-b272-dd3b1398c1dc'
     BlockchainAddress:
       type: object
       required:
@@ -221,6 +253,13 @@ components:
       name: Authorization
       in: header
   parameters:
+    userIdParam:
+      name: userId
+      in: path
+      description: ID of user
+      required: true
+      schema:
+        $ref: '#/components/schemas/Uuid'
     offsetParam:
       in: query
       name: offset
