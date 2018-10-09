@@ -112,7 +112,6 @@ impl DbExecutor for DbExecutorImpl {
 /// thread local storage
 pub fn with_tls_connection<F, T>(f: F) -> Result<T, Error>
 where
-    T: 'static,
     F: FnOnce(&PgConnection) -> Result<T, Error>,
 {
     DB_CONN.with(|tls_conn_cell| -> Result<T, Error> {
