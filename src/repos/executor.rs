@@ -110,7 +110,7 @@ where
                 .ok_or(ectx!(try err e, ErrorContext::Connection, ErrorKind::Internal))?;
         }
         let res = f(&conn);
-        if res.is_ok() {
+        {
             let mut maybe_conn = maybe_conn_cell.borrow_mut();
             *maybe_conn = Some(conn);
         }
