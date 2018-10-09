@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 
 use diesel::pg::PgConnection;
-use diesel::result::Error as DieselError;
+use failure::Error as FailureError;
 use futures_cpupool::CpuPool;
 
 use super::error::*;
@@ -85,13 +85,8 @@ impl DbExecutor for DbExecutorImpl {
                     }
                 }
                 with_tls_connection(move |conn| {
-                    let mut e: Option<E> = None;
-                    conn.transaction(|| -> Result<T, DieselError> {
-                        f().map_err(|err| {
-                            e = Some(err);
-                            DieselError::RollbackTransaction
-                        })
-                    }).map_err(|_| ectx!(err e.unwrap(), ErrorSource::Transaction, ErrorKind::Internal))
+                    conn.transaction::<_, FailureError, _>(|| f().map_err(From::from))
+                        .map_err(ectx!(ErrorSource::Transaction, ErrorKind::Internal))
                 }).map_err(|e| e.into())
             })
         }))
