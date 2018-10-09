@@ -100,8 +100,8 @@ impl DbExecutor for DbExecutorImpl {
         F: FnOnce() -> Result<T, E> + Send + 'static,
         E: From<Error> + Fail,
     {
-        self.execute_test_transaction(|| {
-            f();
+        self.execute_transaction(|| {
+            let _ = f();
             let e: Error = ErrorKind::Internal.into();
             Err(e.into())
         })
