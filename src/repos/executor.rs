@@ -95,25 +95,19 @@ impl DbExecutor for DbExecutorImpl {
 
 pub fn with_tls_connection<F, T>(f: F) -> Result<T, Error>
 where
+    T: 'static,
     F: FnOnce(&PgConnection) -> Result<T, Error>,
 {
     DB_CONN.with(|maybe_conn_cell| -> Result<T, Error> {
-        let conn: PgPooledConnection;
-        {
-            let mut maybe_conn = maybe_conn_cell.borrow_mut();
-            if maybe_conn.is_none() {
-                return Err(ectx!(err ErrorKind::Internal, ErrorContext::Connection, ErrorKind::Internal));
-            }
-            let e: Error = ErrorKind::Internal.into();
-            conn = maybe_conn
-                .take()
-                .ok_or(ectx!(try err e, ErrorContext::Connection, ErrorKind::Internal))?;
+        let maybe_conn = maybe_conn_cell.borrow();
+        if maybe_conn.is_none() {
+            return Err(ectx!(err ErrorKind::Internal, ErrorContext::Connection, ErrorKind::Internal));
         }
-        let res = f(&conn);
-        {
-            let mut maybe_conn = maybe_conn_cell.borrow_mut();
-            *maybe_conn = Some(conn);
-        }
-        res
+        let e: Error = ErrorKind::Internal.into();
+        let conn_ref = maybe_conn
+            .as_ref()
+            .take()
+            .ok_or(ectx!(try err e, ErrorContext::Connection, ErrorKind::Internal))?;
+        f(conn_ref)
     })
 }
