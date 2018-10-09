@@ -12,6 +12,15 @@ pub struct Error {
 pub enum ErrorKind {
     #[fail(display = "blockchain error - internal")]
     Internal,
+    #[fail(display = "blockchain error - missing nonce")]
+    MissingNonce,
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Fail)]
+pub enum ErrorContext {
+    #[fail(display = "blockchain context - error converting to H160")]
+    H160Convert,
 }
 
 #[allow(dead_code)]
@@ -19,6 +28,8 @@ pub enum ErrorKind {
 pub enum ErrorSource {
     #[fail(display = "blockchain source - error generating random numer using OS rng")]
     Random,
+    #[fail(display = "blockchain source - error in transaction signing")]
+    Signer,
 }
 
 derive_error_impls!();

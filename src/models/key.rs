@@ -1,11 +1,14 @@
+use std::str::FromStr;
 use std::time::SystemTime;
 
 use diesel::sql_types::{Uuid as SqlUuid, VarChar};
+use ethereum_types::H160;
 use std::fmt::{self, Debug, Display};
 use uuid::Uuid;
 
 use super::currency::Currency;
 use super::user::UserId;
+use blockchain::{Error as BlockchainError, ErrorContext as BlockchainErrorContext, ErrorKind as BlockchainErrorKind};
 use schema::keys;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, FromSqlRow, AsExpression, Clone)]
@@ -45,6 +48,10 @@ derive_newtype_sql!(blockchain_address, VarChar, BlockchainAddress, BlockchainAd
 impl BlockchainAddress {
     pub fn new(data: String) -> Self {
         BlockchainAddress(data)
+    }
+
+    pub fn to_h160(&self) -> Result<H160, BlockchainError> {
+        H160::from_str(&self.0).map_err(ectx!(BlockchainErrorContext::H160Convert, BlockchainErrorKind::Internal))
     }
 }
 

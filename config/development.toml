@@ -6,3 +6,6 @@ port = 8000
 url = "postgresql://keystore:keystore@localhost/keystore"
 thread_pool_size = 4
 
+[blockchain]
+stq_gas_limit = 100000
+stq_contract_address = "ec827d2c2493ca90cc237f4f314979973f17f5a8"

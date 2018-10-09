@@ -8,6 +8,7 @@ use config_crate::{Config as RawConfig, ConfigError, Environment, File};
 pub struct Config {
     pub server: Server,
     pub database: Database,
+    pub blockchain: Blockchain,
     pub sentry: Option<SentryConfig>,
 }
 
@@ -21,6 +22,12 @@ pub struct Server {
 pub struct Database {
     pub url: String,
     pub thread_pool_size: usize,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct Blockchain {
+    pub stq_gas_limit: usize,
+    pub stq_contract_address: String,
 }
 
 impl Config {
