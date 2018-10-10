@@ -30,6 +30,12 @@ impl Debug for TransactionId {
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct RawTransaction(String);
 
+impl RawTransaction {
+    pub fn new(data: String) -> Self {
+        RawTransaction(data)
+    }
+}
+
 #[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct UnsignedTransaction {

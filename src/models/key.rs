@@ -30,6 +30,7 @@ impl Debug for KeyId {
     }
 }
 
+/// Hex encoded private key
 #[derive(FromSqlRow, AsExpression, Clone)]
 #[sql_type = "VarChar"]
 pub struct PrivateKey(String);
@@ -40,8 +41,13 @@ impl PrivateKey {
     pub fn new(data: String) -> Self {
         PrivateKey(data)
     }
+
+    pub fn into_inner(self) -> String {
+        self.0
+    }
 }
 
+/// Hex encoded blockchain address
 #[derive(Debug, Serialize, Deserialize, FromSqlRow, AsExpression, Clone)]
 #[sql_type = "VarChar"]
 pub struct BlockchainAddress(String);
@@ -54,10 +60,6 @@ impl BlockchainAddress {
 
     pub fn into_inner(self) -> String {
         self.0
-    }
-
-    pub fn to_h160(&self) -> Result<H160, BlockchainError> {
-        H160::from_str(&self.0).map_err(ectx!(BlockchainErrorContext::H160Convert, BlockchainErrorKind::Internal))
     }
 }
 

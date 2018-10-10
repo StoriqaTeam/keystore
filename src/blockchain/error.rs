@@ -13,7 +13,7 @@ pub enum ErrorKind {
     #[fail(display = "blockchain error - internal")]
     Internal,
     #[fail(display = "blockchain error - malformed address")]
-    MalformedAddress,
+    MalformedHexString,
     #[fail(display = "blockchain error - missing nonce")]
     MissingNonce,
 }
@@ -25,6 +25,8 @@ pub enum ErrorContext {
     H160Convert,
     #[fail(display = "blockchain context - error serializing blockchain address")]
     AddressConvert,
+    #[fail(display = "blockchain error - error serializing private key")]
+    PrivateKeyConvert,
 }
 
 #[allow(dead_code)]

@@ -29,6 +29,7 @@ extern crate hyper_tls;
 extern crate r2d2;
 extern crate rand;
 extern crate regex;
+extern crate rlp;
 extern crate serde;
 extern crate serde_json;
 extern crate serde_qs;

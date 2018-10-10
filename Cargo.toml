@@ -36,3 +36,4 @@ regex = "1"
 rand = "0.5"
 base64 = "0.9"
 tokio-core = "0.1"
+rlp = { version = "0.2.4", features = ["ethereum"] }

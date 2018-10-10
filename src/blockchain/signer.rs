@@ -1,6 +1,10 @@
+use rlp::{self, Encodable};
+use std::str::FromStr;
+
 use super::error::*;
 use ethcore_transaction::{Action, Transaction};
-use ethereum_types::U256;
+use ethereum_types::{H160, U256};
+use ethkey::Secret;
 use models::*;
 use prelude::*;
 
@@ -13,14 +17,16 @@ pub struct BlockchainSignerImpl {
     stq_gas_limit: usize,
     stq_contract_address: String,
     stq_transfer_method_number: String,
+    chain_id: Option<u64>,
 }
 
 impl BlockchainSignerImpl {
-    fn new(stq_gas_limit: usize, stq_contract_address: String, stq_transfer_method_number: String) -> Self {
+    fn new(stq_gas_limit: usize, stq_contract_address: String, stq_transfer_method_number: String, chain_id: Option<u64>) -> Self {
         Self {
             stq_gas_limit,
             stq_contract_address,
             stq_transfer_method_number,
+            chain_id,
         }
     }
 }
@@ -40,46 +46,79 @@ impl BlockchainSigner for BlockchainSignerImpl {
         let nonce: U256 = nonce.into();
         let gas_price: U256 = fee_price.into();
         let gas: U256 = self.stq_gas_limit.into();
-        let value: U256 = match currency {
+        let tx_value: U256 = match currency {
             Currency::Eth => value.into(),
             Currency::Stq => 0.into(),
         };
-        let to = to.to_h160()?;
-        let action = Action::Call(to);
-        // let data = match currency {
-        //     Currency::Eth => Vec::new(),
-        //     Currency::Stq => Vec::new(),
-        // };
+        let action = match currency {
+            Currency::Eth => {
+                let to = H160::from_str(&to.clone().into_inner())
+                    .map_err(ectx!(try ErrorContext::H160Convert, ErrorKind::MalformedHexString))?;
+                Action::Call(to)
+            }
+            Currency::Stq => {
+                let to = H160::from_str(&self.stq_contract_address)
+                    .map_err(ectx!(try ErrorContext::H160Convert, ErrorKind::MalformedHexString))?;
+                Action::Call(to)
+            }
+        };
+        let data = match currency {
+            Currency::Eth => Vec::new(),
+            Currency::Stq => {
+                let mut data: Vec<u8> = Vec::new();
+                let method = hex_to_bytes(self.stq_transfer_method_number.clone())?;
+                let to = serialize_address(to)?;
+                let value = serialize_amount(value);
+                data.extend(method.iter());
+                data.extend(to.iter());
+                data.extend(value.iter());
+                data
+            }
+        };
 
-        // let tx = Transaction {
-        //     nonce,
-        //     gas_price,
-        //     gas,
-        //     action,
-        //     value,
-        // };
-        unimplemented!()
+        let tx = Transaction {
+            nonce,
+            gas_price,
+            gas,
+            action,
+            value: tx_value,
+            data,
+        };
+        let secret = private_key_to_secret(key)?;
+        let signed = tx.sign(&secret, self.chain_id);
+        let raw_data = rlp::encode(&signed).to_vec();
+        let raw_hex_data = bytes_to_hex(&raw_data);
+        Ok(RawTransaction::new(raw_hex_data))
     }
+}
+
+fn private_key_to_secret(key: PrivateKey) -> Result<Secret, Error> {
+    let hex_pk = key.clone().into_inner();
+    let bytes = hex_to_bytes(hex_pk)?;
+    Secret::from_slice(&bytes)
+        .ok_or(ectx!(err ErrorKind::MalformedHexString, ErrorContext::PrivateKeyConvert, ErrorKind::MalformedHexString => key))
 }
 
 fn serialize_amount(amount: Amount) -> Vec<u8> {
     to_padded_32_bytes(&amount.to_bytes())
 }
-
-fn serialize_address(address: BlockchainAddress) -> Result<Vec<u8>, Error> {
-    let chars: Vec<char> = address.clone().into_inner().chars().collect();
-    let res: Result<Vec<u8>, Error> = chars
+fn hex_to_bytes(hex: String) -> Result<Vec<u8>, Error> {
+    let chars: Vec<char> = hex.clone().chars().collect();
+    chars
         .chunks(2)
         .map(|chunk| {
-            let address = address.clone();
+            let hex = hex.clone();
             if chunk.len() < 2 {
-                let e: Error = ErrorKind::MalformedAddress.into();
-                return Err(ectx!(err e, ErrorContext::AddressConvert, ErrorKind::MalformedAddress => address));
+                let e: Error = ErrorKind::MalformedHexString.into();
+                return Err(ectx!(err e, ErrorKind::MalformedHexString => hex));
             }
             let string = format!("{}{}", chunk[0], chunk[1]);
-            u8::from_str_radix(&string, 16).map_err(ectx!(ErrorContext::AddressConvert, ErrorKind::MalformedAddress => address))
-        }).collect();
-    res.map(|data| to_padded_32_bytes(&data))
+            u8::from_str_radix(&string, 16).map_err(ectx!(ErrorKind::MalformedHexString => hex))
+        }).collect()
+}
+
+fn serialize_address(address: BlockchainAddress) -> Result<Vec<u8>, Error> {
+    hex_to_bytes(address.into_inner()).map(|data| to_padded_32_bytes(&data))
 }
 
 fn to_padded_32_bytes(data: &[u8]) -> Vec<u8> {
