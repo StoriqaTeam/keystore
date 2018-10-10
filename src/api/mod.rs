@@ -78,6 +78,7 @@ impl Service for ApiService {
         let db_pool = self.db_pool.clone();
         let thread_pool = self.cpu_pool.clone();
         let db_executor = DbExecutorImpl::new(db_pool.clone(), thread_pool.clone());
+        let config = self.config.clone();
         Box::new(
             read_body(http_body)
                 .map_err(ectx!(ErrorSource::Hyper, ErrorKind::Internal))
@@ -91,7 +92,12 @@ impl Service for ApiService {
 
                     let auth_service = Arc::new(AuthServiceImpl::new(Arc::new(UsersRepoImpl), db_executor.clone()));
                     let key_generator = Arc::new(KeyGeneratorImpl);
-                    let blockchain_signer = Arc::new(BlockchainSignerImpl::default());
+                    let blockchain_signer = Arc::new(BlockchainSignerImpl::new(
+                        config.blockchain.stq_gas_limit.clone(),
+                        config.blockchain.stq_contract_address.clone(),
+                        config.blockchain.stq_transfer_method_number.clone(),
+                        config.blockchain.ethereum_chain_id.clone(),
+                    ));
                     let keys_repo = Arc::new(KeysRepoImpl);
                     let keys_service = Arc::new(KeysServiceImpl::new(
                         auth_service.clone(),

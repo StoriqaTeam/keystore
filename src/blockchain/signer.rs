@@ -21,7 +21,7 @@ pub struct BlockchainSignerImpl {
 }
 
 impl BlockchainSignerImpl {
-    fn new(stq_gas_limit: usize, stq_contract_address: String, stq_transfer_method_number: String, chain_id: Option<u64>) -> Self {
+    pub fn new(stq_gas_limit: usize, stq_contract_address: String, stq_transfer_method_number: String, chain_id: Option<u64>) -> Self {
         Self {
             stq_gas_limit,
             stq_contract_address,

@@ -29,6 +29,7 @@ pub struct Blockchain {
     pub stq_gas_limit: usize,
     pub stq_contract_address: String,
     pub stq_transfer_method_number: String,
+    pub ethereum_chain_id: Option<u64>,
 }
 
 impl Config {
