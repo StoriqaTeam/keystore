@@ -9,7 +9,12 @@ use schema::keys::dsl::*;
 pub trait KeysRepo: Send + Sync + 'static {
     fn list(&self, current_user_id: UserId, offset: i64, limit: i64) -> Result<Vec<Key>, Error>;
     fn create(&self, payload: NewKey) -> Result<Key, Error>;
-    fn find_by_address(&self, current_user_id: UserId, cur: Currency, address: BlockchainAddress) -> Result<Option<Key>, Error>;
+    fn find_by_address_and_currency(
+        &self,
+        current_user_id: UserId,
+        cur: Currency,
+        address: BlockchainAddress,
+    ) -> Result<Option<Key>, Error>;
 }
 
 pub struct KeysRepoImpl;
@@ -25,7 +30,12 @@ impl KeysRepo for KeysRepoImpl {
         })
     }
 
-    fn find_by_address(&self, current_user_id: UserId, cur: Currency, address: BlockchainAddress) -> Result<Option<Key>, Error> {
+    fn find_by_address_and_currency(
+        &self,
+        current_user_id: UserId,
+        cur: Currency,
+        address: BlockchainAddress,
+    ) -> Result<Option<Key>, Error> {
         with_tls_connection(|conn| {
             keys.filter(owner_id.eq(current_user_id))
                 .filter(blockchain_address.eq(address))

@@ -44,7 +44,7 @@ impl<E: DbExecutor> TransactionsService for TransactionsServiceImpl<E> {
             let currency = transaction.currency.clone();
             db_executor.execute_transaction(move || {
                 keys_repo
-                    .find_by_address(user_id, currency, blockchain_address)
+                    .find_by_address_and_currency(user_id, currency, blockchain_address)
                     .map_err(ectx!(ErrorKind::Internal => user_id_clone))
                     .and_then(|maybe_key| {
                         maybe_key.ok_or(ectx!(err ErrorContext::NoWallet, ErrorKind::NotFound => user_id_clone2, blockchain_address_clone))
