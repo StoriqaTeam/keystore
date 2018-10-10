@@ -2,6 +2,7 @@ use std::error::Error as StdError;
 use std::fmt;
 use std::fmt::LowerHex;
 use std::io::prelude::*;
+use std::mem::transmute;
 
 use diesel::deserialize::{self, FromSql};
 use diesel::pg::data_types::PgNumeric;
@@ -23,13 +24,22 @@ pub struct Amount(u128);
 
 impl Amount {
     ///Make addition, return None on overflow
-    fn checked_add(&self, other: Amount) -> Option<Self> {
+    pub fn checked_add(&self, other: Amount) -> Option<Self> {
         self.0.checked_add(other.0).map(Amount)
     }
 
     /// Make saubtraction, return None on overflow
-    fn checked_sub(&self, other: Amount) -> Option<Self> {
+    pub fn checked_sub(&self, other: Amount) -> Option<Self> {
         self.0.checked_sub(other.0).map(Amount)
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let bytes: [u8; 16] = unsafe { transmute(self.0.to_be()) };
+        bytes.into_iter().cloned().collect()
+    }
+
+    pub fn new(val: u128) -> Self {
+        Amount(val)
     }
 }
 

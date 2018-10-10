@@ -12,6 +12,8 @@ pub struct Error {
 pub enum ErrorKind {
     #[fail(display = "blockchain error - internal")]
     Internal,
+    #[fail(display = "blockchain error - malformed address")]
+    MalformedAddress,
     #[fail(display = "blockchain error - missing nonce")]
     MissingNonce,
 }
@@ -21,6 +23,8 @@ pub enum ErrorKind {
 pub enum ErrorContext {
     #[fail(display = "blockchain context - error converting to H160")]
     H160Convert,
+    #[fail(display = "blockchain context - error serializing blockchain address")]
+    AddressConvert,
 }
 
 #[allow(dead_code)]

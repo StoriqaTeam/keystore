@@ -1,3 +1,4 @@
+use std::error::Error as StdError;
 use std::str::FromStr;
 use std::time::SystemTime;
 
@@ -9,6 +10,7 @@ use uuid::Uuid;
 use super::currency::Currency;
 use super::user::UserId;
 use blockchain::{Error as BlockchainError, ErrorContext as BlockchainErrorContext, ErrorKind as BlockchainErrorKind};
+use prelude::*;
 use schema::keys;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, FromSqlRow, AsExpression, Clone)]
@@ -48,6 +50,10 @@ derive_newtype_sql!(blockchain_address, VarChar, BlockchainAddress, BlockchainAd
 impl BlockchainAddress {
     pub fn new(data: String) -> Self {
         BlockchainAddress(data)
+    }
+
+    pub fn into_inner(self) -> String {
+        self.0
     }
 
     pub fn to_h160(&self) -> Result<H160, BlockchainError> {
