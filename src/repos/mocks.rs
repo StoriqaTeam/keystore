@@ -35,7 +35,13 @@ impl KeysRepo for KeysRepoMock {
 
     fn find_by_address(&self, current_user_id: UserId, address: BlockchainAddress) -> Result<Option<Key>, Error> {
         let data = self.data.lock().unwrap();
-        let keys: Vec<Key> = data.iter().filter(|x| x.owner_id == current_user_id).take(1).cloned().collect();
+        let keys: Vec<Key> = data
+            .iter()
+            .filter(|x| x.owner_id == current_user_id)
+            .filter(|x| x.blockchain_address == address)
+            .take(1)
+            .cloned()
+            .collect();
         Ok(keys.get(0).cloned())
     }
 

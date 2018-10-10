@@ -1,14 +1,10 @@
-use std::time::SystemTime;
-
-use diesel::sql_types::{Uuid as SqlUuid, VarChar};
+use diesel::sql_types::Uuid as SqlUuid;
 use std::fmt::{self, Debug, Display};
 use uuid::Uuid;
 
 use super::amount::Amount;
 use super::currency::Currency;
 use super::key::BlockchainAddress;
-use super::user::UserId;
-use schema::keys;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, FromSqlRow, AsExpression, Clone)]
 #[sql_type = "SqlUuid"]

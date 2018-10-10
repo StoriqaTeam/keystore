@@ -1,16 +1,11 @@
-use std::error::Error as StdError;
-use std::str::FromStr;
 use std::time::SystemTime;
 
 use diesel::sql_types::{Uuid as SqlUuid, VarChar};
-use ethereum_types::H160;
 use std::fmt::{self, Debug, Display};
 use uuid::Uuid;
 
 use super::currency::Currency;
 use super::user::UserId;
-use blockchain::{Error as BlockchainError, ErrorContext as BlockchainErrorContext, ErrorKind as BlockchainErrorKind};
-use prelude::*;
 use schema::keys;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, FromSqlRow, AsExpression, Clone)]
@@ -48,7 +43,7 @@ impl PrivateKey {
 }
 
 /// Hex encoded blockchain address
-#[derive(Debug, Serialize, Deserialize, FromSqlRow, AsExpression, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, FromSqlRow, AsExpression, Clone)]
 #[sql_type = "VarChar"]
 pub struct BlockchainAddress(String);
 derive_newtype_sql!(blockchain_address, VarChar, BlockchainAddress, BlockchainAddress);

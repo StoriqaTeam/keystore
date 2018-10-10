@@ -1,4 +1,4 @@
-use rlp::{self, Encodable};
+use rlp;
 use std::str::FromStr;
 
 use super::error::*;
@@ -34,7 +34,6 @@ impl BlockchainSignerImpl {
 impl BlockchainSigner for BlockchainSignerImpl {
     fn sign(&self, key: PrivateKey, tx: UnsignedTransaction) -> Result<RawTransaction, Error> {
         let UnsignedTransaction {
-            from,
             to,
             currency,
             value,
@@ -142,7 +141,6 @@ fn bytes_to_hex(bytes: &[u8]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use models::*;
 
     #[test]
     fn test_serialize_address() {

@@ -78,7 +78,6 @@ mod tests {
     use repos::*;
     use services::*;
     use tokio_core::reactor::Core;
-    use {create_db_pool, get_config};
 
     #[test]
     fn test_create() {
@@ -139,7 +138,6 @@ mod tests {
 
         // doesn't list with wrong token
         let auth_token2 = NewUser::default().authentication_token;
-        let key_id = KeyId::default();
         let res = core.run(keys_service.list(Some(auth_token2.clone()), 0, 100));
         assert_eq!(res.is_err(), true);
 
