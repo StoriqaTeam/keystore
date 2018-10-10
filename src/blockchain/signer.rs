@@ -143,6 +143,49 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_sign() {
+        let signer = BlockchainSignerImpl {
+            stq_gas_limit: 100000,
+            stq_contract_address: "1bf2092a42166b2ae19b7b23752e7d2dab5ba91a".to_string(),
+            stq_transfer_method_number: "a9059cbb".to_string(),
+            chain_id: Some(42),
+        };
+        let private_key = PrivateKey::new("b3c0e85a511cc6d21423a386de29dcf2cda6b2f2fa5ebb47948401bbb90458db".to_string());
+        let to = BlockchainAddress::new("00d44DD2f6a2d2005326Db58eC5137204C5Cba5A".to_string());
+        let from = to.clone(); // from is inferred from private_key, so this is abundant for sign method
+        let cases = [
+            (
+                UnsignedTransaction {
+                    id: TransactionId::default(),
+                    from: from.clone(),
+                    to: to.clone(),
+                    currency: Currency::Eth,
+                    value: Amount::new(25000000000000000000),
+                    fee_price: Amount::new(30000000000),
+                    nonce: Some(0),
+                },
+                "f86e808506fc23ac00830186a09400d44dd2f6a2d2005326db58ec5137204c5cba5a89015af1d78b58c400008077a09bb23536f025bc054d87c68faf2dcb99141a0be6ab28ea888974d4a9b5d9473ca0436070757106922b3c65c81592d5c8ea55fac876b78b8c5ce946711ff8c74cb4",
+            ),
+            (
+                UnsignedTransaction {
+                    id: TransactionId::default(),
+                    from: from.clone(),
+                    to: to.clone(),
+                    currency: Currency::Stq,
+                    value: Amount::new(25000000000000000000),
+                    fee_price: Amount::new(30000000000),
+                    nonce: Some(0),
+                },
+                "f8aa808506fc23ac00830186a0941bf2092a42166b2ae19b7b23752e7d2dab5ba91a80b844a9059cbb00000000000000000000000000d44dd2f6a2d2005326db58ec5137204c5cba5a0000000000000000000000000000000000000000000000015af1d78b58c4000077a0de0e8ba7ed0175250a275d80590dacefd1cdc3fd8e06f931af7e420e88c14f03a07d0330efa45e73d84263af996ad645b117e3531b2ecb6b5f3d1508db5b0aae63",
+            ),
+        ];
+        for case in cases.into_iter() {
+            let (input, expected) = case.clone();
+            let output = signer.sign(private_key.clone(), input).unwrap();
+            assert_eq!(output, RawTransaction::new(expected.to_string()));
+        }
+    }
+    #[test]
     fn test_serialize_address() {
         let cases = [
             (
