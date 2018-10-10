@@ -42,12 +42,13 @@ impl<E: DbExecutor> TransactionsService for TransactionsServiceImpl<E> {
             let blockchain_address = transaction.from.clone();
             let blockchain_address_clone = blockchain_address.clone();
             let currency = transaction.currency.clone();
+            let currency_clone = currency.clone();
             db_executor.execute_transaction(move || {
                 keys_repo
                     .find_by_address_and_currency(user_id, currency, blockchain_address)
                     .map_err(ectx!(ErrorKind::Internal => user_id_clone))
                     .and_then(|maybe_key| {
-                        maybe_key.ok_or(ectx!(err ErrorContext::NoWallet, ErrorKind::NotFound => user_id_clone2, blockchain_address_clone))
+                        maybe_key.ok_or(ectx!(err ErrorContext::NoWallet, ErrorKind::NotFound => user_id_clone2, blockchain_address_clone, currency_clone))
                     }).and_then(move |key| {
                         signer
                             .sign(key.private_key, transaction)
