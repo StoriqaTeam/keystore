@@ -3,7 +3,7 @@ use std::sync::Arc;
 use super::auth::AuthService;
 use super::error::*;
 use super::ServiceFuture;
-use blockchain::KeyGenerator;
+use blockchain::BlockchainService;
 use models::*;
 use prelude::*;
 use repos::{DbExecutor, KeysRepo};
@@ -15,16 +15,21 @@ pub trait KeysService: Send + Sync + 'static {
 
 pub struct KeysServiceImpl<E: DbExecutor> {
     auth_service: Arc<AuthService>,
-    key_generator: Arc<KeyGenerator>,
+    blockchain_service: Arc<BlockchainService>,
     keys_repo: Arc<KeysRepo>,
     db_executor: E,
 }
 
 impl<E: DbExecutor> KeysServiceImpl<E> {
-    pub fn new(auth_service: Arc<AuthService>, key_generator: Arc<KeyGenerator>, keys_repo: Arc<KeysRepo>, db_executor: E) -> Self {
+    pub fn new(
+        auth_service: Arc<AuthService>,
+        blockchain_service: Arc<BlockchainService>,
+        keys_repo: Arc<KeysRepo>,
+        db_executor: E,
+    ) -> Self {
         Self {
             auth_service,
-            key_generator,
+            blockchain_service,
             keys_repo,
             db_executor,
         }
@@ -50,12 +55,13 @@ impl<E: DbExecutor> KeysService for KeysServiceImpl<E> {
         let db_executor = self.db_executor.clone();
         let keys_repo = self.keys_repo.clone();
         let id_clone = id.clone();
-        let key_generator = self.key_generator.clone();
+        let blockchain_service = self.blockchain_service.clone();
         Box::new(self.auth_service.authenticate(maybe_token).and_then(move |user| {
             let owner_id = user.id;
             let owner_id_clone = owner_id.clone();
             db_executor.execute(move || {
-                let (private_key, blockchain_address) = key_generator.generate_key(currency).map_err(ectx!(try ErrorKind::Internal))?;
+                let (private_key, blockchain_address) =
+                    blockchain_service.generate_key(currency).map_err(ectx!(try ErrorKind::Internal))?;
                 let new_key = NewKey {
                     id,
                     currency,
@@ -84,10 +90,10 @@ mod tests {
         let new_user = NewUser::default();
         let token = new_user.authentication_token.clone();
         let auth_service = Arc::new(AuthServiceMock::new(vec![token.clone()]));
-        let key_generator = Arc::new(KeyGeneratorMock);
+        let blockchain_service = Arc::new(BlockchainServiceMock);
         let keys_repo = Arc::new(KeysRepoMock::new());
         let db_executor = DbExecutorMock::new();
-        let keys_service = KeysServiceImpl::new(auth_service, key_generator, keys_repo, db_executor);
+        let keys_service = KeysServiceImpl::new(auth_service, blockchain_service, keys_repo, db_executor);
         let mut core = Core::new().unwrap();
 
         // creates with right token
@@ -120,10 +126,10 @@ mod tests {
         let new_user = NewUser::default();
         let token = new_user.authentication_token.clone();
         let auth_service = Arc::new(AuthServiceMock::new(vec![token.clone()]));
-        let key_generator = Arc::new(KeyGeneratorMock);
+        let blockchain_service = Arc::new(BlockchainServiceMock);
         let keys_repo = Arc::new(KeysRepoMock::new());
         let db_executor = DbExecutorMock::new();
-        let keys_service = KeysServiceImpl::new(auth_service, key_generator, keys_repo, db_executor);
+        let keys_service = KeysServiceImpl::new(auth_service, blockchain_service, keys_repo, db_executor);
         let mut core = Core::new().unwrap();
 
         // lists with right token

@@ -2,27 +2,25 @@ use rlp;
 use std::str::FromStr;
 
 use super::error::*;
+use super::BlockchainService;
 use ethcore_transaction::{Action, Transaction};
 use ethereum_types::{H160, U256};
 use ethkey::Secret;
+use ethkey::{Generator, Random};
 use models::*;
 use prelude::*;
 
-pub trait BlockchainSigner: Send + Sync + 'static {
-    fn sign(&self, key: PrivateKey, tx: UnsignedTransaction) -> Result<RawTransaction, Error>;
-}
-
 #[derive(Default)]
-pub struct BlockchainSignerImpl {
+pub struct EthereumService {
     stq_gas_limit: usize,
     stq_contract_address: String,
     stq_transfer_method_number: String,
     chain_id: Option<u64>,
 }
 
-impl BlockchainSignerImpl {
+impl EthereumService {
     pub fn new(stq_gas_limit: usize, stq_contract_address: String, stq_transfer_method_number: String, chain_id: Option<u64>) -> Self {
-        Self {
+        EthereumService {
             stq_gas_limit,
             stq_contract_address,
             stq_transfer_method_number,
@@ -31,7 +29,14 @@ impl BlockchainSignerImpl {
     }
 }
 
-impl BlockchainSigner for BlockchainSignerImpl {
+impl BlockchainService for EthereumService {
+    fn generate_key(&self, currency: Currency) -> Result<(PrivateKey, BlockchainAddress), Error> {
+        let mut random = Random;
+        let pair = random.generate().map_err(ectx!(try ErrorSource::Random, ErrorKind::Internal))?;
+        let private_key = PrivateKey::new(format!("{:x}", pair.secret()));
+        let blockchain_address = BlockchainAddress::new(format!("{:x}", pair.address()));
+        Ok((private_key, blockchain_address))
+    }
     fn sign(&self, key: PrivateKey, tx: UnsignedTransaction) -> Result<RawTransaction, Error> {
         let UnsignedTransaction {
             to,
@@ -48,6 +53,7 @@ impl BlockchainSigner for BlockchainSignerImpl {
         let tx_value: U256 = match currency {
             Currency::Eth => value.into(),
             Currency::Stq => 0.into(),
+            _ => panic!("attempted to sign non-ethereum currency with ethereum algos "),
         };
         let action = match currency {
             Currency::Eth => {
@@ -60,6 +66,7 @@ impl BlockchainSigner for BlockchainSignerImpl {
                     .map_err(ectx!(try ErrorContext::H160Convert, ErrorKind::MalformedHexString))?;
                 Action::Call(to)
             }
+            _ => panic!("attempted to sign non-ethereum currency with ethereum algos "),
         };
         let data = match currency {
             Currency::Eth => Vec::new(),
@@ -73,6 +80,7 @@ impl BlockchainSigner for BlockchainSignerImpl {
                 data.extend(value.iter());
                 data
             }
+            _ => panic!("attempted to sign non-ethereum currency with ethereum algos "),
         };
 
         let tx = Transaction {
@@ -140,11 +148,12 @@ fn bytes_to_hex(bytes: &[u8]) -> String {
 
 #[cfg(test)]
 mod tests {
+    use super::super::BlockchainService;
     use super::*;
 
     #[test]
     fn test_sign() {
-        let signer = BlockchainSignerImpl {
+        let ethereum_service = EthereumService {
             stq_gas_limit: 100000,
             stq_contract_address: "1bf2092a42166b2ae19b7b23752e7d2dab5ba91a".to_string(),
             stq_transfer_method_number: "a9059cbb".to_string(),
@@ -181,7 +190,7 @@ mod tests {
         ];
         for case in cases.into_iter() {
             let (input, expected) = case.clone();
-            let output = signer.sign(private_key.clone(), input).unwrap();
+            let output = ethereum_service.sign(private_key.clone(), input).unwrap();
             assert_eq!(output, RawTransaction::new(expected.to_string()));
         }
     }

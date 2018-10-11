@@ -25,7 +25,7 @@ use r2d2;
 
 use self::controllers::*;
 use self::error::*;
-use blockchain::{BlockchainSignerImpl, KeyGeneratorImpl};
+use blockchain::{BlockchainService, BlockchainServiceImpl};
 use prelude::*;
 use repos::{DbExecutorImpl, KeysRepoImpl, UsersRepoImpl};
 use serde_json;
@@ -91,8 +91,7 @@ impl Service for ApiService {
                     };
 
                     let auth_service = Arc::new(AuthServiceImpl::new(Arc::new(UsersRepoImpl), db_executor.clone()));
-                    let key_generator = Arc::new(KeyGeneratorImpl);
-                    let blockchain_signer = Arc::new(BlockchainSignerImpl::new(
+                    let blockchain_service = Arc::new(BlockchainServiceImpl::new(
                         config.blockchain.stq_gas_limit.clone(),
                         config.blockchain.stq_contract_address.clone(),
                         config.blockchain.stq_transfer_method_number.clone(),
@@ -101,7 +100,7 @@ impl Service for ApiService {
                     let keys_repo = Arc::new(KeysRepoImpl);
                     let keys_service = Arc::new(KeysServiceImpl::new(
                         auth_service.clone(),
-                        key_generator.clone(),
+                        blockchain_service.clone(),
                         keys_repo.clone(),
                         db_executor.clone(),
                     ));
@@ -109,7 +108,7 @@ impl Service for ApiService {
                     let transactions_service = Arc::new(TransactionsServiceImpl::new(
                         auth_service.clone(),
                         keys_repo.clone(),
-                        blockchain_signer.clone(),
+                        blockchain_service.clone(),
                         db_executor.clone(),
                     ));
 

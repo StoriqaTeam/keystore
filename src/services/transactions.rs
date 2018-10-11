@@ -3,7 +3,7 @@ use std::sync::Arc;
 use super::auth::AuthService;
 use super::error::*;
 use super::ServiceFuture;
-use blockchain::BlockchainSigner;
+use blockchain::BlockchainService;
 use models::*;
 use prelude::*;
 use repos::{DbExecutor, KeysRepo};
@@ -15,12 +15,17 @@ pub trait TransactionsService: Send + Sync + 'static {
 pub struct TransactionsServiceImpl<E: DbExecutor> {
     auth_service: Arc<AuthService>,
     keys_repo: Arc<KeysRepo>,
-    blockchain_signer: Arc<BlockchainSigner>,
+    blockchain_signer: Arc<BlockchainService>,
     db_executor: E,
 }
 
 impl<E: DbExecutor> TransactionsServiceImpl<E> {
-    pub fn new(auth_service: Arc<AuthService>, keys_repo: Arc<KeysRepo>, blockchain_signer: Arc<BlockchainSigner>, db_executor: E) -> Self {
+    pub fn new(
+        auth_service: Arc<AuthService>,
+        keys_repo: Arc<KeysRepo>,
+        blockchain_signer: Arc<BlockchainService>,
+        db_executor: E,
+    ) -> Self {
         Self {
             auth_service,
             keys_repo,
