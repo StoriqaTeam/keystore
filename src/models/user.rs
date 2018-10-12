@@ -26,7 +26,8 @@ impl Debug for UserId {
 impl FromStr for UserId {
     type Err = FailureError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        s.parse().map_err(|_| format_err!("Failed to parse user_id: {}", s))
+        let uuid = s.parse().map_err(|_| format_err!("Failed to parse user_id: {}", s))?;
+        Ok(UserId(uuid))
     }
 }
 
