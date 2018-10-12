@@ -30,6 +30,10 @@ impl RawTransaction {
     pub fn new(data: String) -> Self {
         RawTransaction(data)
     }
+
+    pub fn inner(self) -> String {
+        self.0
+    }
 }
 
 #[derive(Debug, Serialize, Clone)]

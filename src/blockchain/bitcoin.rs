@@ -17,10 +17,16 @@ pub struct BitcoinService {
     btc_network: BtcNetwork,
 }
 
-impl BlockchainService for BitcoinService {
+impl BitcoinService {
     // https://en.bitcoin.it/wiki/OP_CHECKSIG
     // https://bitcoin.stackexchange.com/questions/3374/how-to-redeem-a-basic-tx
-    fn sign(&self, key: PrivateKey, tx: UnsignedTransaction) -> Result<RawTransaction, Error> {
+    fn sign_with_options(
+        &self,
+        key: PrivateKey,
+        tx: UnsignedTransaction,
+        rbf: bool,
+        lock_time: Option<u32>,
+    ) -> Result<RawTransaction, Error> {
         let utxos = self.needed_utxos(&tx.utxos, tx.value)?;
 
         let from_address = tx.from.clone().into_inner();
@@ -46,10 +52,11 @@ impl BlockchainService for BitcoinService {
                     hash: tx_hash,
                     index: *index as u32,
                 };
+                let sequence = if rbf { u32::max_value() - 2 } else { u32::max_value() };
                 Ok(TransactionInput {
                     previous_output: outpoint,
                     script_sig: script_sig.to_bytes(),
-                    sequence: u32::max_value() - 2, //?
+                    sequence,
                     script_witness: vec![],
                 })
             }).collect();
@@ -87,7 +94,7 @@ impl BlockchainService for BitcoinService {
             version: 1,
             inputs: inputs.clone(),
             outputs,
-            lock_time: 1436452,
+            lock_time: lock_time.unwrap_or(0),
         };
         let tx_raw = serialize(&tx).take();
         let mut tx_raw_with_sighash = tx_raw.clone();
@@ -116,6 +123,14 @@ impl BlockchainService for BitcoinService {
         let tx_raw = serialize(&tx).take();
         let tx_raw_hex = bytes_to_hex(&tx_raw);
         Ok(RawTransaction::new(tx_raw_hex))
+    }
+}
+
+impl BlockchainService for BitcoinService {
+    // https://en.bitcoin.it/wiki/OP_CHECKSIG
+    // https://bitcoin.stackexchange.com/questions/3374/how-to-redeem-a-basic-tx
+    fn sign(&self, key: PrivateKey, tx: UnsignedTransaction) -> Result<RawTransaction, Error> {
+        self.sign_with_options(key, tx, false, None)
     }
 
     fn generate_key(&self, currency: Currency) -> Result<(PrivateKey, BlockchainAddress), Error> {
@@ -156,5 +171,34 @@ impl BitcoinService {
             }
         }
         Err(ectx!(err ErrorKind::NotEnoughUtxo, ErrorKind::NotEnoughUtxo => utxos, value))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    // https://testnet.blockchain.info/tx/5aed90d51d84d54d1093995f6d6a0e1e4503f40deefce942817bec6ad3cafe81?format=hex
+    #[test]
+    fn test_sign() {
+        let bitcoin_service = BitcoinService::new(BtcNetwork::Test);
+        let pk = PrivateKey::new("ef13c9b34216f7fbe84787ab9ff78f9fd516a1d72a78f071bfaaad97278fa86b5a9951c8c0".to_string());
+        let tx = UnsignedTransaction {
+            id: TransactionId::default(),
+            from: BlockchainAddress::new("n4qX9Fh5wZopB1e2MGcpHUAy24NC7JxMwm".to_string()),
+            to: BlockchainAddress::new("ms3iZko2BcbigHBufFUum2Avg9PfozmZY4".to_string()),
+            currency: Currency::Btc,
+            value: Amount::new(100000),
+            fee_price: Amount::new(30000000000),
+            nonce: None,
+            utxos: vec![Utxo {
+                tx_hash: "90e56bda920e72e9caae86302c284f18255a419927a0649fca839faeca1b8610".to_string(),
+                value: Amount::new(8293863),
+                index: 0,
+            }],
+        };
+        let raw_tx = bitcoin_service
+            .sign_with_options(pk, tx, true, Some(1436452))
+            .expect("Failed to sign");
+        assert_eq!(raw_tx.inner(), "010000000110861bcaae9f83ca9f64a02799415a25184f282c3086aecae9720e92da6be590000000008a473044022065d8c5c83d1262e47447127aec29f78b80bce5cf8702f61679529019cc37bfa502204ca0377bd13ec7445b56e726c143f4da718e4424c2ec9acd68a58255f435992b0141049cd145484ef05dc259326651e942ecfa2c7f64bad3286e94e303eaf9b03edf0a844d63ad58c078e28a183438d0bccc75fd788522069ed79cee71736fade65124fdffffff02a0860100000000001976a9147e7ad15c2aa503c33520dee5bccd7d79ff2b44db88ac47077d00000000001976a914ffcdccfab05fa7df11e279da558d68f80daffc3788ac24eb1500".to_string());
     }
 }
