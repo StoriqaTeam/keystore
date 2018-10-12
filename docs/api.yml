@@ -1,5 +1,7 @@
 openapi: 3.0.0
 servers:
+  - url: 'https://dev.keystore.stq.cloud/v1'
+  - url: 'http://dev.keystore.stq.cloud/v1'
   - url: 'https://keystore.stq.cloud/v1'
   - url: 'http://keystore.stq.cloud/v1'
 info:
@@ -17,7 +19,7 @@ paths:
   /users/{userId}/keys:
     get:
       summary: Returns list of existing adresses
-      description: You need to be authenticated to use this method.
+      description: You need to be authenticated with userId to use this method.
       security:
         - Bearer: []
       tags:
@@ -34,11 +36,11 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/BlockchainAddress'
+                  $ref: '#/components/schemas/Key'
 
     post:
       summary: Creates a new private key
-      description: You need to be authenticated to use this method.
+      description: You need to be authenticated with userId to use this method.
       security:
         - Bearer: []
       tags:
@@ -51,25 +53,21 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/BlockchainAddress'
+                $ref: '#/components/schemas/Key'
       requestBody:
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/KeyCreateInput'
 
-  /users/{userId}/transactions:
+  /transactions:
     post:
       summary: Prepares and Signs a transaction
-      description: You need to be authenticated to use this method.
+      description: You need to be authenticated to use this method. The `from` wallet addressed must be owned by authenticated user.
       security:
         - Bearer: []
       tags:
         - transactions
-      parameters:
-        - $ref: '#/components/parameters/userIdParam'
       responses:
         200:
           description: Ok
@@ -190,18 +188,26 @@ components:
 
     KeyCreateInput:
       type: object
+      required:
+        - id
+        - currency
       properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
         currency:
           $ref: '#/components/schemas/Currency'
     TransactionCreateInput:
       type: object
       required:
+        - id
         - feePrice
         - value
         - currency
         - from
         - to
       properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
         from:
           type: string
           description: Blockchain address.
@@ -222,26 +228,48 @@ components:
           example: 89000000000000
         nonce:
           type: integer
-          description: Nonce from ethereum account (required for ethereum and ERC20 tokens) (value up to 10^38)
+          description: Nonce from ethereum account (required for ethereum and ERC20 tokens) (value up to 10^38). This value is required for Ehtereum and all ERC20 tokens. It must be fetched from the Blockchain gateway service and passed here.
           example: 2
+        utxos:
+          type: array
+          description: Utxos available for `from` address. This value is required for Bitcoin. It must be fetched from the Blockchain gateway service and passed here.
+          items:
+            $ref: '#/components/schemas/Utxo'
+    Utxo:
+      type: object
+      properties:
+        txHash:
+          type: string
+          description: Transaction hash of UTXO
+          example: "709ea8df7a09edf780adf78a0a"
+        index:
+          type: integer
+          description: Number of UTXO in outputs of transaction
+          example: 2
+        value:
+          type: integer
+          description: total value in satothis available in UTXO
+          example: 82000000
     RawTransaction:
       type: string
-      description: Binary data that fits 1 to 1 for node api
-      example: "ugfdoinoac374noaiw75caowie7ao745b="
+      description: Hex string data that fits 1 to 1 for node api
+      example: "6a4d76f7ad95f6ad94fa796d4"
     Currency:
       type: string
-      description: Coinmarketcap symbol in CAPS [source](https://coinmarketcap.com/)
-      example: ETH
+      description: Coinmarketcap symbol in lowercase [source](https://coinmarketcap.com/)
+      example: eth
     Uuid:
       type: string
       description: Uuid v4
       example: '5188dde0-9dc3-461f-b272-dd3b1398c1dc'
-    BlockchainAddress:
+    Key:
       type: object
       required:
         - currency
         - address
       properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
         currency:
           $ref: '#/components/schemas/Currency'
         address:
@@ -263,18 +291,14 @@ components:
     offsetParam:
       in: query
       name: offset
-      required: false
+      required: true
       schema:
         type: integer
-        minimum: 0
-        default: 0
       description: The number of items to skip before starting to collect the result set.
     limitParam:
       in: query
       name: limit
-      required: false
+      required: true
+      description: The number of items to return
       schema:
         type: integer
-        minimum: 1
-        maximum: 50
-        default: 20

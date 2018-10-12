@@ -11,6 +11,7 @@ pub struct PostKeysResponse {
 #[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct KeyResponse {
+    pub id: KeyId,
     pub currency: Currency,
     pub blockchain_address: BlockchainAddress,
 }

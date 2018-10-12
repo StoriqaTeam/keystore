@@ -33,6 +33,7 @@ pub fn get_keys(ctx: &Context, user_id: UserId) -> ControllerFuture {
                 let keys: Vec<KeyResponse> = keys
                     .iter()
                     .map(|key| KeyResponse {
+                        id: key.id.clone(),
                         blockchain_address: key.blockchain_address.clone(),
                         currency: key.currency,
                     }).collect();
@@ -55,9 +56,11 @@ pub fn post_keys(ctx: &Context, user_id: UserId) -> ControllerFuture {
                 let Key {
                     blockchain_address,
                     currency,
+                    id,
                     ..
                 } = key;
                 let key_response = KeyResponse {
+                    id,
                     blockchain_address,
                     currency,
                 };
