@@ -26,6 +26,7 @@ extern crate futures;
 extern crate futures_cpupool;
 extern crate hyper;
 extern crate hyper_tls;
+extern crate keys as btckey;
 extern crate r2d2;
 extern crate rand;
 extern crate regex;
