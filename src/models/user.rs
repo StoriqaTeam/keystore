@@ -1,9 +1,11 @@
 use std::fmt;
 use std::fmt::{Debug, Display};
+use std::str::FromStr;
 use std::time::SystemTime;
 
 use base64;
 use diesel::sql_types::{Uuid as SqlUuid, VarChar};
+use failure::Error as FailureError;
 use rand::OsRng;
 use schema::users;
 use uuid::Uuid;
@@ -18,6 +20,19 @@ derive_newtype_sql!(user_id, SqlUuid, UserId, UserId);
 impl Debug for UserId {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         Display::fmt(&self.0, f)
+    }
+}
+
+impl FromStr for UserId {
+    type Err = FailureError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        s.parse().map_err(|_| format_err!("Failed to parse user_id: {}", s))
+    }
+}
+
+impl Default for UserId {
+    fn default() -> Self {
+        UserId(Uuid::new_v4())
     }
 }
 

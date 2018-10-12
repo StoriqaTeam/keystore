@@ -9,7 +9,7 @@ use futures::prelude::*;
 use models::*;
 use serde_qs;
 
-pub fn get_keys(ctx: &Context) -> ControllerFuture {
+pub fn get_keys(ctx: &Context, user_id: UserId) -> ControllerFuture {
     let keys_service = ctx.keys_service.clone();
     let maybe_token = ctx.get_auth_token();
     let path_and_query = ctx.uri.path_and_query();
@@ -27,7 +27,7 @@ pub fn get_keys(ctx: &Context) -> ControllerFuture {
             .and_then(move |input| {
                 let input_clone = input.clone();
                 keys_service
-                    .list(maybe_token, input.offset, input.limit)
+                    .list(maybe_token, user_id, input.offset, input.limit)
                     .map_err(ectx!(convert => input_clone))
             }).and_then(|keys| {
                 let keys: Vec<KeyResponse> = keys
@@ -41,7 +41,7 @@ pub fn get_keys(ctx: &Context) -> ControllerFuture {
     )
 }
 
-pub fn post_keys(ctx: &Context) -> ControllerFuture {
+pub fn post_keys(ctx: &Context, user_id: UserId) -> ControllerFuture {
     let keys_service = ctx.keys_service.clone();
     let maybe_token = ctx.get_auth_token();
     Box::new(
@@ -49,7 +49,7 @@ pub fn post_keys(ctx: &Context) -> ControllerFuture {
             .and_then(move |input| {
                 let input_clone = input.clone();
                 keys_service
-                    .create(maybe_token, input.currency, input.id)
+                    .create(maybe_token, user_id, input.currency, input.id)
                     .map_err(ectx!(convert => input_clone))
             }).and_then(|key| {
                 let Key {

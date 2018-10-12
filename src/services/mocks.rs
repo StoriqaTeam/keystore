@@ -11,10 +11,11 @@ pub struct AuthServiceMock {
 }
 
 impl AuthServiceMock {
-    pub fn new(allowed_tokens: Vec<AuthenticationToken>) -> Self {
+    pub fn new(allowed_tokens: Vec<(AuthenticationToken, UserId)>) -> Self {
         let mut users = HashMap::new();
-        for token in allowed_tokens {
+        for (token, id) in allowed_tokens {
             let mut user = User::default();
+            user.id = id;
             user.authentication_token = token.clone();
             users.insert(token, user);
         }

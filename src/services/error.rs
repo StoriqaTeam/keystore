@@ -38,6 +38,8 @@ pub enum ErrorSource {
 pub enum ErrorContext {
     #[fail(display = "service error context - no auth token received")]
     NoAuthToken,
+    #[fail(display = "service error context - tried to access resources that doesn't belong to user")]
+    NotOwnResources,
     #[fail(display = "service error context - no wallet with this address found")]
     NoWallet,
     #[fail(display = "service error context - signing transaction")]

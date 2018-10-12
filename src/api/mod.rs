@@ -26,6 +26,7 @@ use r2d2;
 use self::controllers::*;
 use self::error::*;
 use blockchain::{BlockchainService, BlockchainServiceImpl};
+use models::*;
 use prelude::*;
 use repos::{DbExecutorImpl, KeysRepoImpl, UsersRepoImpl};
 use serde_json;
@@ -84,8 +85,8 @@ impl Service for ApiService {
                 .map_err(ectx!(ErrorSource::Hyper, ErrorKind::Internal))
                 .and_then(move |body| {
                     let router = router! {
-                        GET /v1/keys => get_keys,
-                        POST /v1/keys => post_keys,
+                        GET /v1/users/{user_id: UserId}/keys => get_keys,
+                        POST /v1/users/{user_id: UserId}/keys => post_keys,
                         POST /v1/transactions => post_transactions,
                         _ => not_found,
                     };
