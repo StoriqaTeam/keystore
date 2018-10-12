@@ -24,7 +24,7 @@ pub struct PostTransactionsRequest {
     pub value: Amount,
     pub fee_price: Amount,
     pub nonce: Option<u64>,
-    pub utxos: Vec<Utxo>,
+    pub utxos: Option<Vec<Utxo>>,
 }
 
 impl From<PostTransactionsRequest> for UnsignedTransaction {

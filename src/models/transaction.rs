@@ -46,7 +46,7 @@ pub struct UnsignedTransaction {
     pub value: Amount,
     pub fee_price: Amount,
     pub nonce: Option<u64>,
-    pub utxos: Vec<Utxo>,
+    pub utxos: Option<Vec<Utxo>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

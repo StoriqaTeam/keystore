@@ -27,7 +27,7 @@ impl BitcoinService {
         rbf: bool,
         lock_time: Option<u32>,
     ) -> Result<RawTransaction, Error> {
-        let utxos = self.needed_utxos(&tx.utxos, tx.value)?;
+        let utxos = self.needed_utxos(&tx.utxos.clone().unwrap_or_default(), tx.value)?;
 
         let from_address = tx.from.clone().into_inner();
         let address_from: Address = from_address.parse().map_err(|e: BtcKeyError| {
@@ -190,11 +190,11 @@ mod tests {
             value: Amount::new(100000),
             fee_price: Amount::new(30000000000),
             nonce: None,
-            utxos: vec![Utxo {
+            utxos: Some(vec![Utxo {
                 tx_hash: "90e56bda920e72e9caae86302c284f18255a419927a0649fca839faeca1b8610".to_string(),
                 value: Amount::new(8293863),
                 index: 0,
-            }],
+            }]),
         };
         let raw_tx = bitcoin_service
             .sign_with_options(pk, tx, true, Some(1436452))
