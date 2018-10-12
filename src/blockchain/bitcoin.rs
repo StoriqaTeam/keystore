@@ -1,7 +1,7 @@
 use btcchain::{OutPoint, Transaction, TransactionInput, TransactionOutput};
 use btccrypto::sha256;
 use btckey::generator::{Generator, Random};
-use btckey::{Address, DisplayLayout, Error as BtcKeyError, Network, Private as BtcPrivateKey, Type as AddressType};
+use btckey::{Address, DisplayLayout, Error as BtcKeyError, KeyPair, Network, Private as BtcPrivateKey, Type as AddressType};
 use btcprimitives::hash::{H160, H256};
 use btcscript::Builder as ScriptBuilder;
 use btcserialization::{serialize, Serializable};
@@ -37,10 +37,11 @@ impl BlockchainService for BitcoinService {
         let inputs: Result<Vec<TransactionInput>, Error> = utxos
             .iter()
             .map(|utxo| -> Result<TransactionInput, Error> {
-                let Utxo { tx_hash, value, index } = utxo;
-                let tx_hash = tx_hash
+                let Utxo { tx_hash, index, .. } = utxo;
+                let tx_hash: H256 = tx_hash
                     .parse()
                     .map_err(|_| ectx!(try err ErrorKind::MalformedHexString, ErrorKind::MalformedHexString))?;
+                let tx_hash = tx_hash.reversed();
                 let outpoint = OutPoint {
                     hash: tx_hash,
                     index: *index as u32,
@@ -48,7 +49,7 @@ impl BlockchainService for BitcoinService {
                 Ok(TransactionInput {
                     previous_output: outpoint,
                     script_sig: script_sig.to_bytes(),
-                    sequence: u32::max_value(),
+                    sequence: u32::max_value() - 2, //?
                     script_witness: vec![],
                 })
             }).collect();
@@ -73,7 +74,7 @@ impl BlockchainService for BitcoinService {
         if sum_inputs < output.value {
             return Err(ectx!(err ErrorKind::NotEnoughUtxo, ErrorKind::NotEnoughUtxo => tx));
         };
-        let rest = output.value - sum_inputs;
+        let rest = sum_inputs - output.value;
         if rest > 0 {
             let script = ScriptBuilder::build_p2pkh(&address_from_hash);
             let output = TransactionOutput {
@@ -86,7 +87,7 @@ impl BlockchainService for BitcoinService {
             version: 1,
             inputs: inputs.clone(),
             outputs,
-            lock_time: 0,
+            lock_time: 1436452,
         };
         let tx_raw = serialize(&tx).take();
         let mut tx_raw_with_sighash = tx_raw.clone();
@@ -95,17 +96,23 @@ impl BlockchainService for BitcoinService {
         let tx_hash = sha256(&sha256(&tx_raw_with_sighash).take());
         let pk = hex_to_bytes(key.clone().into_inner())?;
         let pk = BtcPrivateKey::from_layout(&pk).map_err(|_| ectx!(try err ErrorContext::PrivateKeyConvert, ErrorKind::Internal => key))?;
-        let signature = pk.sign(&tx_hash).map_err(|e| {
+        let keypair = KeyPair::from_private(pk).map_err(|_| ectx!(try err ErrorContext::PrivateKeyConvert, ErrorKind::Internal => key))?;
+        let signature = keypair.private().sign(&tx_hash).map_err(|e| {
             let e = format_err!("{}", e);
             ectx!(try err e, ErrorContext::Signature, ErrorKind::Internal)
         })?;
+        let mut signature_with_sighash = signature.to_vec();
+        // SIGHASH_ALL
+        signature_with_sighash.push(1);
+        let public = keypair.public();
         let script = ScriptBuilder::default()
-            .push_bytes(&*signature)
-            .push_bytes(&address_from_hash.take())
+            .push_bytes(&signature_with_sighash)
+            .push_bytes(&*public)
             .into_script();
         for input_ref in tx.inputs.iter_mut() {
             input_ref.script_sig = script.to_bytes();
         }
+        println!("Tx: {:?}", tx);
         let tx_raw = serialize(&tx).take();
         let tx_raw_hex = bytes_to_hex(&tx_raw);
         Ok(RawTransaction::new(tx_raw_hex))
@@ -151,31 +158,3 @@ impl BitcoinService {
         Err(ectx!(err ErrorKind::NotEnoughUtxo, ErrorKind::NotEnoughUtxo => utxos, value))
     }
 }
-
-// #[derive(Debug, PartialEq, Default, Clone)]
-// pub struct Transaction {
-// 	pub version: i32, // 1
-// 	pub inputs: Vec<TransactionInput>,
-// 	pub outputs: Vec<TransactionOutput>,
-// 	pub lock_time: u32, // 0
-// }
-
-// #[derive(Debug, PartialEq, Clone, Serializable, Deserializable)]
-// pub struct TransactionOutput {
-// 	pub value: u64,
-// 	pub script_pubkey: Bytes,
-// }
-
-// #[derive(Debug, PartialEq, Eq, Clone, Default, Serializable, Deserializable)]
-// pub struct OutPoint {
-// 	pub hash: H256,
-// 	pub index: u32,
-// }
-
-// #[derive(Debug, PartialEq, Default, Clone)]
-// pub struct TransactionInput {
-// 	pub previous_output: OutPoint,
-// 	pub script_sig: Bytes,
-// 	pub sequence: u32,
-// 	pub script_witness: Vec<Bytes>,
-// }
