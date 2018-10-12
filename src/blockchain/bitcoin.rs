@@ -2,9 +2,9 @@ use btcchain::{OutPoint, Transaction, TransactionInput, TransactionOutput};
 use btccrypto::sha256;
 use btckey::generator::{Generator, Random};
 use btckey::{Address, DisplayLayout, Error as BtcKeyError, KeyPair, Network, Private as BtcPrivateKey, Type as AddressType};
-use btcprimitives::hash::{H160, H256};
+use btcprimitives::hash::H256;
 use btcscript::Builder as ScriptBuilder;
-use btcserialization::{serialize, Serializable};
+use btcserialization::serialize;
 use config::BtcNetwork;
 
 use super::error::*;
@@ -199,6 +199,6 @@ mod tests {
         let raw_tx = bitcoin_service
             .sign_with_options(pk, tx, true, Some(1436452))
             .expect("Failed to sign");
-        assert_eq!(raw_tx.inner(), "010000000110861bcaae9f83ca9f64a02799415a25184f282c3086aecae9720e92da6be590000000008a473044022065d8c5c83d1262e47447127aec29f78b80bce5cf8702f61679529019cc37bfa502204ca0377bd13ec7445b56e726c143f4da718e4424c2ec9acd68a58255f435992b0141049cd145484ef05dc259326651e942ecfa2c7f64bad3286e94e303eaf9b03edf0a844d63ad58c078e28a183438d0bccc75fd788522069ed79cee71736fade65124fdffffff02a0860100000000001976a9147e7ad15c2aa503c33520dee5bccd7d79ff2b44db88ac47077d00000000001976a914ffcdccfab05fa7df11e279da558d68f80daffc3788ac24eb1500".to_string());
+        assert_eq!(raw_tx.into_inner(), "010000000110861bcaae9f83ca9f64a02799415a25184f282c3086aecae9720e92da6be590000000008a473044022065d8c5c83d1262e47447127aec29f78b80bce5cf8702f61679529019cc37bfa502204ca0377bd13ec7445b56e726c143f4da718e4424c2ec9acd68a58255f435992b0141049cd145484ef05dc259326651e942ecfa2c7f64bad3286e94e303eaf9b03edf0a844d63ad58c078e28a183438d0bccc75fd788522069ed79cee71736fade65124fdffffff02a0860100000000001976a9147e7ad15c2aa503c33520dee5bccd7d79ff2b44db88ac47077d00000000001976a914ffcdccfab05fa7df11e279da558d68f80daffc3788ac24eb1500".to_string());
     }
 }

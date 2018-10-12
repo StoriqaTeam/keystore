@@ -31,7 +31,7 @@ impl EthereumService {
 }
 
 impl BlockchainService for EthereumService {
-    fn generate_key(&self, currency: Currency) -> Result<(PrivateKey, BlockchainAddress), Error> {
+    fn generate_key(&self, _currency: Currency) -> Result<(PrivateKey, BlockchainAddress), Error> {
         let mut random = Random;
         let pair = random.generate().map_err(ectx!(try ErrorSource::Random, ErrorKind::Internal))?;
         let private_key = PrivateKey::new(format!("{:x}", pair.secret()));

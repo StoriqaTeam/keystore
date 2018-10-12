@@ -31,7 +31,7 @@ impl RawTransaction {
         RawTransaction(data)
     }
 
-    pub fn inner(self) -> String {
+    pub fn into_inner(self) -> String {
         self.0
     }
 }

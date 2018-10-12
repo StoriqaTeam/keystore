@@ -14,7 +14,7 @@ impl BlockchainService for BlockchainServiceMock {
         Ok((PrivateKey::new(key), BlockchainAddress::new(address)))
     }
 
-    fn sign(&self, key: PrivateKey, tx: UnsignedTransaction) -> Result<RawTransaction, Error> {
+    fn sign(&self, _key: PrivateKey, _tx: UnsignedTransaction) -> Result<RawTransaction, Error> {
         let tx: String = thread_rng().sample_iter(&Alphanumeric).take(30).collect();
         Ok(RawTransaction::new(tx))
     }

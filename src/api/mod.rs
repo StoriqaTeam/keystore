@@ -25,7 +25,7 @@ use r2d2;
 
 use self::controllers::*;
 use self::error::*;
-use blockchain::{BlockchainService, BlockchainServiceImpl};
+use blockchain::BlockchainServiceImpl;
 use models::*;
 use prelude::*;
 use repos::{DbExecutorImpl, KeysRepoImpl, UsersRepoImpl};
