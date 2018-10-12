@@ -852,6 +852,7 @@ name = "keystore"
 version = "0.1.0"
 dependencies = [
  "base64 0.9.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bitcrypto 0.1.0",
  "chain 0.1.0",
  "clap 2.32.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "config 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -880,6 +881,7 @@ dependencies = [
  "serde_derive 1.0.79 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_qs 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serialization 0.1.0",
  "tokio-core 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "uuid 0.6.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "validator 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",

@@ -35,6 +35,8 @@ pub enum ErrorContext {
     PrivateKeyConvert,
     #[fail(display = "blockchain error - unsupported blockchain address")]
     UnsupportedAddress,
+    #[fail(display = "blockchain error - error signing message")]
+    Signature,
 }
 
 #[allow(dead_code)]

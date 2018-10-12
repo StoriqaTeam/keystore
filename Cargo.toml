@@ -14,6 +14,8 @@ ethereum-types = "0.4"
 keys = { version = "0.1.0", path = "./bitcoin/parity-bitcoin/keys" }
 chain = { version = "0.1.0", path = "./bitcoin/parity-bitcoin/chain" }
 primitives = { version = "0.1.0", path = "./bitcoin/parity-bitcoin/primitives" }
+serialization = { version = "0.1.0", path = "./bitcoin/parity-bitcoin/serialization" }
+bitcrypto = { version = "0.1.0", path = "./bitcoin/parity-bitcoin/crypto" }
 script = { version = "0.1.0", path =  "./bitcoin/parity-bitcoin/script" }
 clap = {version = "2", features = ["yaml"]}
 config = "0.9"

@@ -18,6 +18,7 @@ extern crate validator_derive;
 extern crate sentry;
 
 extern crate base64;
+extern crate bitcrypto as btccrypto;
 extern crate chain as btcchain;
 extern crate config as config_crate;
 extern crate ethcore_transaction;
@@ -37,6 +38,7 @@ extern crate script as btcscript;
 extern crate serde;
 extern crate serde_json;
 extern crate serde_qs;
+extern crate serialization as btcserialization;
 #[cfg(test)]
 extern crate tokio_core;
 extern crate uuid;

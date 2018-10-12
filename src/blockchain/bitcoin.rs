@@ -1,12 +1,14 @@
 use btcchain::{OutPoint, Transaction, TransactionInput, TransactionOutput};
+use btccrypto::sha256;
 use btckey::generator::{Generator, Random};
-use btckey::{Address, DisplayLayout, Error as BtcKeyError, Network, Type as AddressType};
+use btckey::{Address, DisplayLayout, Error as BtcKeyError, Network, Private as BtcPrivateKey, Type as AddressType};
 use btcprimitives::hash::{H160, H256};
 use btcscript::Builder as ScriptBuilder;
+use btcserialization::{serialize, Serializable};
 use config::BtcNetwork;
 
 use super::error::*;
-use super::utils::bytes_to_hex;
+use super::utils::{bytes_to_hex, hex_to_bytes};
 use super::BlockchainService;
 use models::*;
 use prelude::*;
@@ -16,6 +18,8 @@ pub struct BitcoinService {
 }
 
 impl BlockchainService for BitcoinService {
+    // https://en.bitcoin.it/wiki/OP_CHECKSIG
+    // https://bitcoin.stackexchange.com/questions/3374/how-to-redeem-a-basic-tx
     fn sign(&self, key: PrivateKey, tx: UnsignedTransaction) -> Result<RawTransaction, Error> {
         let utxos = self.needed_utxos(&tx.utxos, tx.value)?;
 
@@ -30,7 +34,7 @@ impl BlockchainService for BitcoinService {
         let address_from_hash = address_from.hash;
         let script_sig = ScriptBuilder::build_p2pkh(&address_from_hash);
 
-        let mut inputs: Result<Vec<TransactionInput>, Error> = utxos
+        let inputs: Result<Vec<TransactionInput>, Error> = utxos
             .iter()
             .map(|utxo| -> Result<TransactionInput, Error> {
                 let Utxo { tx_hash, value, index } = utxo;
@@ -48,7 +52,7 @@ impl BlockchainService for BitcoinService {
                     script_witness: vec![],
                 })
             }).collect();
-        let mut inputs = inputs?;
+        let inputs = inputs?;
         let to_address = tx.to.clone().into_inner();
         let address_to: Address = to_address.parse().map_err(|e: BtcKeyError| {
             let e = format_err!("{}", e);
@@ -77,8 +81,34 @@ impl BlockchainService for BitcoinService {
                 script_pubkey: script.to_bytes(),
             };
             outputs.push(output);
+        };
+        let mut tx = Transaction {
+            version: 1,
+            inputs: inputs.clone(),
+            outputs,
+            lock_time: 0,
+        };
+        let tx_raw = serialize(&tx).take();
+        let mut tx_raw_with_sighash = tx_raw.clone();
+        // SIGHASH_ALL
+        tx_raw_with_sighash.extend([1, 0, 0, 0].iter());
+        let tx_hash = sha256(&sha256(&tx_raw_with_sighash).take());
+        let pk = hex_to_bytes(key.clone().into_inner())?;
+        let pk = BtcPrivateKey::from_layout(&pk).map_err(|_| ectx!(try err ErrorContext::PrivateKeyConvert, ErrorKind::Internal => key))?;
+        let signature = pk.sign(&tx_hash).map_err(|e| {
+            let e = format_err!("{}", e);
+            ectx!(try err e, ErrorContext::Signature, ErrorKind::Internal)
+        })?;
+        let script = ScriptBuilder::default()
+            .push_bytes(&*signature)
+            .push_bytes(&address_from_hash.take())
+            .into_script();
+        for input_ref in tx.inputs.iter_mut() {
+            input_ref.script_sig = script.to_bytes();
         }
-        unimplemented!()
+        let tx_raw = serialize(&tx).take();
+        let tx_raw_hex = bytes_to_hex(&tx_raw);
+        Ok(RawTransaction::new(tx_raw_hex))
     }
 
     fn generate_key(&self, currency: Currency) -> Result<(PrivateKey, BlockchainAddress), Error> {
