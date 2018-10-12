@@ -42,4 +42,13 @@ pub struct UnsignedTransaction {
     pub value: Amount,
     pub fee_price: Amount,
     pub nonce: Option<u64>,
+    pub utxos: Vec<Utxo>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct Utxo {
+    pub tx_hash: String,
+    pub value: Amount,
+    pub index: u64,
 }

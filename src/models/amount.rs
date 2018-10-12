@@ -1,3 +1,4 @@
+use std::cmp::{Ord, Ordering};
 use std::error::Error as StdError;
 use std::fmt;
 use std::fmt::LowerHex;
@@ -33,6 +34,10 @@ impl Amount {
         self.0.checked_sub(other.0).map(Amount)
     }
 
+    pub fn to_inner(&self) -> u128 {
+        self.0
+    }
+
     pub fn to_bytes(&self) -> Vec<u8> {
         let bytes: [u8; 16] = unsafe { transmute(self.0.to_be()) };
         bytes.into_iter().cloned().collect()
@@ -40,6 +45,18 @@ impl Amount {
 
     pub fn new(val: u128) -> Self {
         Amount(val)
+    }
+}
+
+impl Ord for Amount {
+    fn cmp(&self, other: &Amount) -> Ordering {
+        self.0.cmp(&other.0)
+    }
+}
+
+impl PartialOrd for Amount {
+    fn partial_cmp(&self, other: &Amount) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 

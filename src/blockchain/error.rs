@@ -12,10 +12,16 @@ pub struct Error {
 pub enum ErrorKind {
     #[fail(display = "blockchain error - internal")]
     Internal,
-    #[fail(display = "blockchain error - malformed address")]
+    #[fail(display = "blockchain error - malformed hex string")]
     MalformedHexString,
+    #[fail(display = "blockchain error - malformed address")]
+    MalformedAddress,
     #[fail(display = "blockchain error - missing nonce")]
     MissingNonce,
+    #[fail(display = "blockchain error - overflow")]
+    Overflow,
+    #[fail(display = "blockchain error - not enough sathoshis in utxos")]
+    NotEnoughUtxo,
 }
 
 #[allow(dead_code)]
@@ -27,6 +33,8 @@ pub enum ErrorContext {
     AddressConvert,
     #[fail(display = "blockchain error - error serializing private key")]
     PrivateKeyConvert,
+    #[fail(display = "blockchain error - unsupported blockchain address")]
+    UnsupportedAddress,
 }
 
 #[allow(dead_code)]

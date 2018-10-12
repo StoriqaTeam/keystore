@@ -24,6 +24,7 @@ pub struct PostTransactionsRequest {
     pub value: Amount,
     pub fee_price: Amount,
     pub nonce: Option<u64>,
+    pub utxos: Vec<Utxo>,
 }
 
 impl From<PostTransactionsRequest> for UnsignedTransaction {
@@ -36,6 +37,7 @@ impl From<PostTransactionsRequest> for UnsignedTransaction {
             value,
             fee_price,
             nonce,
+            utxos,
         } = req;
 
         UnsignedTransaction {
@@ -46,6 +48,7 @@ impl From<PostTransactionsRequest> for UnsignedTransaction {
             value,
             fee_price,
             nonce,
+            utxos,
         }
     }
 }

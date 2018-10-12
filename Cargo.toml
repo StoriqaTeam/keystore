@@ -12,6 +12,9 @@ ethkey = {version = "0.3.0", path = "./ethereum/ethkey"}
 ethcore-transaction = {version = "0.1.0", path = "./ethereum/ethcore/transaction"}
 ethereum-types = "0.4"
 keys = { version = "0.1.0", path = "./bitcoin/parity-bitcoin/keys" }
+chain = { version = "0.1.0", path = "./bitcoin/parity-bitcoin/chain" }
+primitives = { version = "0.1.0", path = "./bitcoin/parity-bitcoin/primitives" }
+script = { version = "0.1.0", path =  "./bitcoin/parity-bitcoin/script" }
 clap = {version = "2", features = ["yaml"]}
 config = "0.9"
 diesel = { version = "1.3.3", features = ["postgres", "chrono", "extras"] }
