@@ -1,3 +1,5 @@
+use serde;
+use serde::{Deserialize, Deserializer};
 use std::env;
 
 use sentry_integration::SentryConfig;
@@ -30,6 +32,26 @@ pub struct Blockchain {
     pub stq_contract_address: String,
     pub stq_transfer_method_number: String,
     pub ethereum_chain_id: Option<u64>,
+    #[serde(deserialize_with = "deserialize_btc_network")]
+    pub btc_network: BtcNetwork,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub enum BtcNetwork {
+    Main,
+    Test,
+}
+
+fn deserialize_btc_network<'de, D>(de: D) -> Result<BtcNetwork, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s: String = Deserialize::deserialize(de)?;
+    match s.as_ref() {
+        "test" => Ok(BtcNetwork::Test),
+        "main" => Ok(BtcNetwork::Main),
+        other => Err(serde::de::Error::custom(format!("unknown network: {}", other))),
+    }
 }
 
 impl Config {

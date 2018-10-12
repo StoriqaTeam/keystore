@@ -96,6 +96,7 @@ impl Service for ApiService {
                         config.blockchain.stq_contract_address.clone(),
                         config.blockchain.stq_transfer_method_number.clone(),
                         config.blockchain.ethereum_chain_id.clone(),
+                        config.blockchain.btc_network.clone(),
                     ));
                     let keys_repo = Arc::new(KeysRepoImpl);
                     let keys_service = Arc::new(KeysServiceImpl::new(

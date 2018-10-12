@@ -3,6 +3,7 @@ mod error;
 mod ethereum;
 #[cfg(test)]
 mod mocks;
+mod utils;
 
 pub use self::error::*;
 #[cfg(test)]
@@ -10,6 +11,7 @@ pub use self::mocks::*;
 
 use self::bitcoin::BitcoinService;
 use self::ethereum::EthereumService;
+use config::BtcNetwork;
 
 use models::*;
 
@@ -18,16 +20,21 @@ pub trait BlockchainService: Send + Sync + 'static {
     fn generate_key(&self, currency: Currency) -> Result<(PrivateKey, BlockchainAddress), Error>;
 }
 
-#[derive(Default)]
 pub struct BlockchainServiceImpl {
     ethereum_service: EthereumService,
     bitcoin_service: BitcoinService,
 }
 
 impl BlockchainServiceImpl {
-    pub fn new(stq_gas_limit: usize, stq_contract_address: String, stq_transfer_method_number: String, chain_id: Option<u64>) -> Self {
+    pub fn new(
+        stq_gas_limit: usize,
+        stq_contract_address: String,
+        stq_transfer_method_number: String,
+        chain_id: Option<u64>,
+        btc_network: BtcNetwork,
+    ) -> Self {
         let ethereum_service = EthereumService::new(stq_gas_limit, stq_contract_address, stq_transfer_method_number, chain_id);
-        let bitcoin_service = BitcoinService::new();
+        let bitcoin_service = BitcoinService::new(btc_network);
         Self {
             ethereum_service,
             bitcoin_service,

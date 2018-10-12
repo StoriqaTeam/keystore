@@ -2,6 +2,7 @@ use rlp;
 use std::str::FromStr;
 
 use super::error::*;
+use super::utils::{bytes_to_hex, hex_to_bytes};
 use super::BlockchainService;
 use ethcore_transaction::{Action, Transaction};
 use ethereum_types::{H160, U256};
@@ -109,20 +110,6 @@ fn private_key_to_secret(key: PrivateKey) -> Result<Secret, Error> {
 fn serialize_amount(amount: Amount) -> Vec<u8> {
     to_padded_32_bytes(&amount.to_bytes())
 }
-fn hex_to_bytes(hex: String) -> Result<Vec<u8>, Error> {
-    let chars: Vec<char> = hex.clone().chars().collect();
-    chars
-        .chunks(2)
-        .map(|chunk| {
-            let hex = hex.clone();
-            if chunk.len() < 2 {
-                let e: Error = ErrorKind::MalformedHexString.into();
-                return Err(ectx!(err e, ErrorKind::MalformedHexString => hex));
-            }
-            let string = format!("{}{}", chunk[0], chunk[1]);
-            u8::from_str_radix(&string, 16).map_err(ectx!(ErrorKind::MalformedHexString => hex))
-        }).collect()
-}
 
 fn serialize_address(address: BlockchainAddress) -> Result<Vec<u8>, Error> {
     hex_to_bytes(address.into_inner()).map(|data| to_padded_32_bytes(&data))
@@ -135,14 +122,6 @@ fn to_padded_32_bytes(data: &[u8]) -> Vec<u8> {
         res.push(0);
     }
     res.extend(data.iter());
-    res
-}
-
-fn bytes_to_hex(bytes: &[u8]) -> String {
-    let mut res = String::with_capacity(bytes.len() * 2);
-    for byte in bytes.iter() {
-        res.push_str(&format!("{:02x}", byte));
-    }
     res
 }
 
