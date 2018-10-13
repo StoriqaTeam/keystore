@@ -121,7 +121,6 @@ impl BitcoinService {
             output_ref.value -= fees;
         };
         // Calculating signature to insert into inputs script
-        println!("Tx before: {:?}", tx);
         let tx_raw = serialize(&tx).take();
         let mut tx_raw_with_sighash = tx_raw.clone();
         // SIGHASH_ALL
@@ -146,28 +145,12 @@ impl BitcoinService {
         for input_ref in tx.inputs.iter_mut() {
             input_ref.script_sig = script.to_bytes();
         }
-        println!("Tx: {:?}", tx);
         let tx_raw = serialize(&tx).take();
-        // let fees = input_tx
-        //     .fee_price
-        //     .u64()
-        //     .ok_or(ectx!(try err ErrorKind::Overflow, ErrorKind::Overflow))?;
-        // let fees = fees
-        //     .checked_mul(tx_raw.len() as u64)
-        //     .ok_or(ectx!(try err ErrorKind::Overflow, ErrorKind::Overflow))?;
-        // let outputs_len = tx.outputs.len();
-        // let last_output = tx
-        //     .outputs
-        //     .get_mut(outputs_len - 1)
-        //     .expect("At least one output must always be in tx");
-        // last_output.value =
-        println!("size after:  {}", tx_raw.len());
         let tx_raw_hex = bytes_to_hex(&tx_raw);
         Ok(RawTransaction::new(tx_raw_hex))
     }
 
     fn estimate_fees(&self, fee_price: Amount, inputs_count: u64, tx_size: u64) -> Option<u64> {
-        println!("Price: {:?}, count: {}, size: {}", fee_price, inputs_count, tx_size);
         let script_sig_size = 1 + 71 + 1 + 1 + 64;
         let script_pubkey_size = 3 + 20 + 2;
         let signature_bytes = (script_sig_size - script_pubkey_size) * inputs_count;
