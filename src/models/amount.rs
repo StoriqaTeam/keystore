@@ -34,11 +34,19 @@ impl Amount {
         self.0.checked_sub(other.0).map(Amount)
     }
 
-    pub fn to_inner(&self) -> u128 {
+    pub fn inner(&self) -> u128 {
         self.0
     }
 
-    pub fn to_bytes(&self) -> Vec<u8> {
+    pub fn u64(&self) -> Option<u64> {
+        if self.0 <= u64::max_value() as u128 {
+            Some(self.0 as u64)
+        } else {
+            None
+        }
+    }
+
+    pub fn bytes(&self) -> Vec<u8> {
         let bytes: [u8; 16] = unsafe { transmute(self.0.to_be()) };
         bytes.into_iter().cloned().collect()
     }

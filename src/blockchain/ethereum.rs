@@ -108,7 +108,7 @@ fn private_key_to_secret(key: PrivateKey) -> Result<Secret, Error> {
 }
 
 fn serialize_amount(amount: Amount) -> Vec<u8> {
-    to_padded_32_bytes(&amount.to_bytes())
+    to_padded_32_bytes(&amount.bytes())
 }
 
 fn serialize_address(address: BlockchainAddress) -> Result<Vec<u8>, Error> {

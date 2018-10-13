@@ -23,19 +23,23 @@ impl BitcoinService {
     fn sign_with_options(
         &self,
         key: PrivateKey,
-        tx: UnsignedTransaction,
+        input_tx: UnsignedTransaction,
         rbf: bool,
         lock_time: Option<u32>,
     ) -> Result<RawTransaction, Error> {
-        let utxos = self.needed_utxos(&tx.utxos.clone().unwrap_or_default(), tx.value)?;
+        let input_value = input_tx
+            .value
+            .u64()
+            .ok_or(ectx!(try err ErrorKind::Overflow, ErrorKind::Overflow))?;
+        let utxos = self.needed_utxos(&input_tx.utxos.clone().unwrap_or_default(), input_tx.value)?;
 
-        let from_address = tx.from.clone().into_inner();
+        let from_address = input_tx.from.clone().into_inner();
         let address_from: Address = from_address.parse().map_err(|e: BtcKeyError| {
             let e = format_err!("{}", e);
             ectx!(try err e, ErrorKind::MalformedAddress)
         })?;
         if address_from.kind != AddressType::P2PKH {
-            return Err(ectx!(err ErrorContext::UnsupportedAddress, ErrorKind::MalformedAddress => tx));
+            return Err(ectx!(err ErrorContext::UnsupportedAddress, ErrorKind::MalformedAddress => input_tx));
         }
         let address_from_hash = address_from.hash;
         let script_sig = ScriptBuilder::build_p2pkh(&address_from_hash);
@@ -61,41 +65,62 @@ impl BitcoinService {
                 })
             }).collect();
         let inputs = inputs?;
-        let to_address = tx.to.clone().into_inner();
+        let to_address = input_tx.to.clone().into_inner();
         let address_to: Address = to_address.parse().map_err(|e: BtcKeyError| {
             let e = format_err!("{}", e);
             ectx!(try err e, ErrorKind::MalformedAddress)
         })?;
         if address_to.kind != AddressType::P2PKH {
-            return Err(ectx!(err ErrorContext::UnsupportedAddress, ErrorKind::MalformedAddress => tx));
+            return Err(ectx!(err ErrorContext::UnsupportedAddress, ErrorKind::MalformedAddress => input_tx));
         }
         let address_to_hash = address_to.hash;
 
         let output_script = ScriptBuilder::build_p2pkh(&address_to_hash);
         let output = TransactionOutput {
-            value: tx.value.to_inner() as u64,
+            value: input_value,
             script_pubkey: output_script.to_bytes(),
         };
         let mut outputs = vec![output.clone()];
-        let sum_inputs: u64 = utxos.iter().map(|u| u.value.to_inner() as u64).sum();
-        if sum_inputs < output.value {
-            return Err(ectx!(err ErrorKind::NotEnoughUtxo, ErrorKind::NotEnoughUtxo => tx));
+        let maybe_sum_inputs = utxos
+            .iter()
+            .fold(Some(Amount::new(0)), |acc, utxo| acc.and_then(|a| a.checked_add(utxo.value)));
+        let sum_inputs = maybe_sum_inputs
+            .and_then(|sum| sum.u64())
+            .ok_or(ectx!(try err ErrorKind::Overflow, ErrorKind::Overflow))?;
+        // Need to be strictly greater since we need to include fees as well
+        if sum_inputs <= output.value {
+            return Err(ectx!(err ErrorKind::NotEnoughUtxo, ErrorKind::NotEnoughUtxo => input_tx));
         };
         let rest = sum_inputs - output.value;
-        if rest > 0 {
-            let script = ScriptBuilder::build_p2pkh(&address_from_hash);
-            let output = TransactionOutput {
-                value: rest as u64,
-                script_pubkey: script.to_bytes(),
-            };
-            outputs.push(output);
+        let script = ScriptBuilder::build_p2pkh(&address_from_hash);
+        let output = TransactionOutput {
+            value: rest as u64,
+            script_pubkey: script.to_bytes(),
         };
+        outputs.push(output);
         let mut tx = Transaction {
             version: 1,
             inputs: inputs.clone(),
-            outputs,
+            outputs: outputs,
             lock_time: lock_time.unwrap_or(0),
         };
+        // Estimating fees and deduct them from the last output (the one with address equal to input)
+        let tx_raw = serialize(&tx).take();
+        let fees = self
+            .estimate_fees(input_tx.fee_price, inputs.len() as u64, tx_raw.len() as u64)
+            .ok_or(ectx!(try err ErrorKind::Overflow, ErrorKind::Overflow))?;
+        let outputs_len = tx.outputs.len();
+        {
+            let output_ref = tx
+                .outputs
+                .get_mut(outputs_len - 1)
+                .expect("At least one output should always be in outputs");
+            if fees >= output_ref.value {
+                return Err(ectx!(err ErrorKind::NotEnoughUtxo, ErrorKind::NotEnoughUtxo => input_tx));
+            }
+            output_ref.value -= fees;
+        };
+        // Calculating signature to insert into inputs script
         let tx_raw = serialize(&tx).take();
         let mut tx_raw_with_sighash = tx_raw.clone();
         // SIGHASH_ALL
@@ -116,13 +141,33 @@ impl BitcoinService {
             .push_bytes(&signature_with_sighash)
             .push_bytes(&*public)
             .into_script();
+        // Updating input_script to have signature
         for input_ref in tx.inputs.iter_mut() {
             input_ref.script_sig = script.to_bytes();
         }
         println!("Tx: {:?}", tx);
         let tx_raw = serialize(&tx).take();
+        // let fees = input_tx
+        //     .fee_price
+        //     .u64()
+        //     .ok_or(ectx!(try err ErrorKind::Overflow, ErrorKind::Overflow))?;
+        // let fees = fees
+        //     .checked_mul(tx_raw.len() as u64)
+        //     .ok_or(ectx!(try err ErrorKind::Overflow, ErrorKind::Overflow))?;
+        // let outputs_len = tx.outputs.len();
+        // let last_output = tx
+        //     .outputs
+        //     .get_mut(outputs_len - 1)
+        //     .expect("At least one output must always be in tx");
+        // last_output.value =
         let tx_raw_hex = bytes_to_hex(&tx_raw);
         Ok(RawTransaction::new(tx_raw_hex))
+    }
+
+    fn estimate_fees(&self, fee_price: Amount, inputs_count: u64, tx_size: u64) -> Option<u64> {
+        let signature_bytes = 72 * inputs_count;
+        let estimated_final_size = tx_size + signature_bytes;
+        fee_price.u64().and_then(|fee| fee.checked_mul(estimated_final_size))
     }
 }
 
@@ -188,7 +233,7 @@ mod tests {
             to: BlockchainAddress::new("ms3iZko2BcbigHBufFUum2Avg9PfozmZY4".to_string()),
             currency: Currency::Btc,
             value: Amount::new(100000),
-            fee_price: Amount::new(30000000000),
+            fee_price: Amount::new(0),
             nonce: None,
             utxos: Some(vec![Utxo {
                 tx_hash: "90e56bda920e72e9caae86302c284f18255a419927a0649fca839faeca1b8610".to_string(),

@@ -1,6 +1,6 @@
 [package]
 name = "keystore"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Алексей Карасев <karasev.alexey@gmail.com>"]
 
 [lib]
