@@ -121,6 +121,7 @@ impl BitcoinService {
             output_ref.value -= fees;
         };
         // Calculating signature to insert into inputs script
+        println!("Tx before: {:?}", tx);
         let tx_raw = serialize(&tx).take();
         let mut tx_raw_with_sighash = tx_raw.clone();
         // SIGHASH_ALL
@@ -160,12 +161,16 @@ impl BitcoinService {
         //     .get_mut(outputs_len - 1)
         //     .expect("At least one output must always be in tx");
         // last_output.value =
+        println!("size after:  {}", tx_raw.len());
         let tx_raw_hex = bytes_to_hex(&tx_raw);
         Ok(RawTransaction::new(tx_raw_hex))
     }
 
     fn estimate_fees(&self, fee_price: Amount, inputs_count: u64, tx_size: u64) -> Option<u64> {
-        let signature_bytes = 72 * inputs_count;
+        println!("Price: {:?}, count: {}, size: {}", fee_price, inputs_count, tx_size);
+        let script_sig_size = 1 + 71 + 1 + 1 + 64;
+        let script_pubkey_size = 3 + 20 + 2;
+        let signature_bytes = (script_sig_size - script_pubkey_size) * inputs_count;
         let estimated_final_size = tx_size + signature_bytes;
         fee_price.u64().and_then(|fee| fee.checked_mul(estimated_final_size))
     }
