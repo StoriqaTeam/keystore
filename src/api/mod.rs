@@ -88,6 +88,7 @@ impl Service for ApiService {
                         GET /v1/users/{user_id: UserId}/keys => get_keys,
                         POST /v1/users/{user_id: UserId}/keys => post_keys,
                         POST /v1/transactions => post_transactions,
+                        GET /healthcheck => get_healthcheck,
                         _ => not_found,
                     };
 

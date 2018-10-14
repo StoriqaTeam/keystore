@@ -9,10 +9,12 @@ use models::*;
 use services::{KeysService, TransactionsService};
 
 mod fallback;
+mod healthcheck;
 mod keys;
 mod transactions;
 
 pub use self::fallback::*;
+pub use self::healthcheck::*;
 pub use self::keys::*;
 pub use self::transactions::*;
 
