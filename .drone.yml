@@ -103,7 +103,6 @@ pipeline:
       event: tag
   deploy2nightly:
     image: jackthestripper/drone_setimage
-    debug: true
     namespace: default
     kind: deployment
     object: payments-keystore
