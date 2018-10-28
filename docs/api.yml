@@ -1,91 +1,73 @@
 openapi: 3.0.0
 servers:
-  - url: 'https://dev.keystore.stq.cloud/v1'
-  - url: 'http://dev.keystore.stq.cloud/v1'
-  - url: 'https://keystore.stq.cloud/v1'
-  - url: 'http://keystore.stq.cloud/v1'
+  - url: 'https://exchange.storiqa.com/v1'
+  - url: 'http://exchange.storiqa.com/v1'
+  - url: 'https://exchange.stq.cloud/v1'
+  - url: 'http://exchange.stq.cloud/v1'
 info:
-  description: Private keys, transactions
-  version: "1.0.0"
-  title: Keystore
+  description: Api server for currency exchange.
+  version: "1.0.2"
+  title: Exchange
   contact:
-    email: a.karasev@storiqa.com
+    email: s.efremov@storiqa.com
 tags:
-  - name: keys
-    description: Managements of keys
-  - name: transactions
-    description: Managements of transactions
+  - name: exchange
+    description: Get, sell, exchange.
 paths:
-  /users/{userId}/keys:
-    get:
-      summary: Returns list of existing adresses
-      description: You need to be authenticated with userId to use this method.
-      security:
-        - Bearer: []
-      tags:
-        - keys
-      parameters:
-        - $ref: '#/components/parameters/userIdParam'
-        - $ref: '#/components/parameters/offsetParam'
-        - $ref: '#/components/parameters/limitParam'
-      responses:
-        200:
-          description: Ok
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Key'
-
+  /exchange:
     post:
-      summary: Creates a new private key
-      description: You need to be authenticated with userId to use this method.
-      security:
+      summary: Exchange funds
+      security: 
         - Bearer: []
       tags:
-        - keys
-      parameters:
-        - $ref: '#/components/parameters/userIdParam'
+        - exchange
       responses:
         200:
           description: Ok
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Key'
+                $ref: '#/components/schemas/ExchangeResponse'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        422:
+          $ref: '#/components/responses/UnprocessableEntity'
+        500:
+          $ref: '#/components/responses/Internal'
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/KeyCreateInput'
-
-  /transactions:
+              $ref: '#/components/schemas/ExchangeInput'
+  /rate:
     post:
-      summary: Prepares and Signs a transaction
-      description: You need to be authenticated to use this method. The `from` wallet addressed must be owned by authenticated user.
-      security:
+      summary: Reserves exchange rate for a period of time
+      security: 
         - Bearer: []
       tags:
-        - transactions
+        - exchange
       responses:
         200:
           description: Ok
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  raw:
-                    $ref: '#/components/schemas/RawTransaction'
+                $ref: '#/components/schemas/RateResponse'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        500:
+          $ref: '#/components/responses/Internal'
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TransactionCreateInput'
-
-
+              $ref: '#/components/schemas/RateInput'
 components:
+  securitySchemes:
+    Bearer:
+      type: apiKey
+      name: Authorization
+      in: header
   responses:
     NotFound:
       description: Resource not found
@@ -115,6 +97,18 @@ components:
               description:
                 type: string
                 example: Bad request
+    UnprocessableEntity:
+      description: Inputs were ok, but service was unable to process request. E.g. when we cannot exchange at the desired rate that we promised
+      content:
+        application/json:
+          schema:
+            type: object
+            description: Error that comes with 422 status
+            properties:
+
+              description:
+                type: string
+                example: Unprocessable entity
     Unauthorized:
       description: Unauthorized to perform action
       content:
@@ -127,12 +121,6 @@ components:
               description:
                 type: string
                 example: Unauthorized
-    UnprocessableEntity:
-      description: Json object matched schema, but didn't pass validations
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ValidationErrors'
     Internal:
       description: Internal server error
       content:
@@ -144,161 +132,106 @@ components:
               description:
                 type: string
                 example: Internal server error
-  schemas:
-    ValidationErrors:
-      type: array
-      items:
-        type: object
-        properties:
-          email:
-            type: array
-            description: Field name
-            items:
-              type: object
-              properties:
-                code:
-                  type: string
-                  description: Validator name
-                  example: email
-                message:
-                  type: string
-                  description: Validation message
-                  example: Invalid email format
-          password:
-            type: array
-            description: Field name
-            items:
-              type: object
-              properties:
-                code:
-                  type: string
-                  description: Validator name
-                  example: length
-                message:
-                  type: string
-                  description: Validation message
-                  example: Length must be greater than 8
-            example:
-              -
-                code: length
-                message: Length must be greater than 8
-              -
-                code: length
-                message: Length must be less than 16
 
-    KeyCreateInput:
+
+
+  schemas:
+    ExchangeResponse:
       type: object
-      required:
-        - id
-        - currency
-      properties:
-        id:
-          $ref: '#/components/schemas/Uuid'
-        currency:
-          $ref: '#/components/schemas/Currency'
-    TransactionCreateInput:
-      type: object
-      required:
-        - id
-        - feePrice
-        - value
-        - currency
-        - from
-        - to
+      description: >
+        Sell order.
       properties:
         id:
           $ref: '#/components/schemas/Uuid'
         from:
-          type: string
-          description: Blockchain address.
-          example: '0xf79867895ad58d6d'
-        to:
-          type: string
-          description: Blockchain address.
-          example: '0xed78f5e9df3ed967f4'
-        currency:
           $ref: '#/components/schemas/Currency'
-        value:
-          type: integer
-          description: Value of transaction in wei / satoshis for transaction (value up to 10^38)
-          example: 1890000000000000000
-        feePrice:
-          type: integer
-          description: Gas price in wei for ethereum or satoshis per byte for bitcoin (value up to 10^38)
-          example: 89000000000000
-        nonce:
-          type: integer
-          description: Nonce from ethereum account (required for ethereum and ERC20 tokens) (value up to 10^38). This value is required for Ehtereum and all ERC20 tokens. It must be fetched from the Blockchain gateway service and passed here.
-          example: 2
-        utxos:
-          type: array
-          description: Utxos available for `from` address. This value is required for Bitcoin. It must be fetched from the Blockchain gateway service and passed here.
-          items:
-            $ref: '#/components/schemas/Utxo'
-    Utxo:
+        to:
+          $ref: '#/components/schemas/Currency'
+        amount:
+          $ref: '#/components/schemas/Value'
+        actualRate:
+          $ref: '#/components/schemas/Rate'
+    RateResponse:
       type: object
+      description: >
+        Current exchange rate.
       properties:
-        txHash:
-          type: string
-          description: Transaction hash of UTXO
-          example: "709ea8df7a09edf780adf78a0a"
-        index:
-          type: integer
-          description: Number of UTXO in outputs of transaction
-          example: 2
-        value:
-          type: integer
-          description: total value in satothis available in UTXO
-          example: 82000000
-    RawTransaction:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        from:
+          $ref: '#/components/schemas/Currency'
+        to:
+          $ref: '#/components/schemas/Currency'
+        amount:
+          $ref: '#/components/schemas/Value'
+        rate:
+          $ref: '#/components/schemas/Rate'
+        expiration:
+          $ref: '#/components/schemas/TimeStamp'
+        createdAt:
+          $ref: '#/components/schemas/TimeStamp'
+        updatedAt:
+          $ref: '#/components/schemas/TimeStamp'
+    Value:
+      type: number
+      description: Monetary value - either fiat or blockchain
+      example: 185000000000000000000
+    ExchangeInput:
+      type: object
+      required:
+        - id
+        - from
+        - to
+        - rate
+        - actualAmount
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        from:
+          $ref: '#/components/schemas/Currency'
+        to:
+          $ref: '#/components/schemas/Currency'
+        rate:
+          $ref: '#/components/schemas/Rate'
+        actualAmount:
+          $ref: '#/components/schemas/Value'
+    RateInput:
+      type: object
+      required:
+        - id
+        - from
+        - to
+        - amount
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        from:
+          $ref: '#/components/schemas/Currency'
+        to:
+          $ref: '#/components/schemas/Currency'
+        amount:
+          $ref: '#/components/schemas/Value'
+
+    AccountAddress:
       type: string
-      description: Hex string data that fits 1 to 1 for node api
-      example: "6a4d76f7ad95f6ad94fa796d4"
+      description: Either blockchain address or fiat account number (depending on currency)
+      example: '0x89595fa59d69d696d9d96'
     Currency:
       type: string
-      description: Coinmarketcap symbol in lowercase [source](https://coinmarketcap.com/)
+      description: >-
+        ISO 4217 alphabetic code for fiat currencies in CAPS
+        [source](https://www.currency-iso.org/en/home/tables/table-a1.html). Or
+        Coinmarketcap symbol in lower case [source](https://coinmarketcap.com/)
       example: eth
     Uuid:
       type: string
       description: Uuid v4
       example: '5188dde0-9dc3-461f-b272-dd3b1398c1dc'
-    Key:
-      type: object
-      required:
-        - currency
-        - address
-      properties:
-        id:
-          $ref: '#/components/schemas/Uuid'
-        currency:
-          $ref: '#/components/schemas/Currency'
-        address:
-          type: string
-          example: 0xjlgdkfg8dfklg7dflg
-  securitySchemes:
-    Bearer:
-      type: apiKey
-      name: Authorization
-      in: header
-  parameters:
-    userIdParam:
-      name: userId
-      in: path
-      description: ID of user
-      required: true
-      schema:
-        $ref: '#/components/schemas/Uuid'
-    offsetParam:
-      in: query
-      name: offset
-      required: true
-      schema:
-        type: integer
-      description: The number of items to skip before starting to collect the result set.
-    limitParam:
-      in: query
-      name: limit
-      required: true
-      description: The number of items to return
-      schema:
-        type: integer
+    Rate:
+      type: number
+      description: exchange rate
+      example: 0.0025
+    TimeStamp:
+      type: number
+      description: unix timestamp
+      example: 157239470
