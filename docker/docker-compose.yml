@@ -35,4 +35,4 @@ services:
     networks:
       - keystore
     ports:
-      - 5433:5432
+      - 5432:5432
