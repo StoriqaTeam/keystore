@@ -16,16 +16,3 @@ subcommands:
                 help: name of a user
                 required: true
                 takes_value: true
-            - uuid:
-                short: u
-                long: uuid
-                help: uuid for a user
-                required: true
-                takes_value: true
-            - token:
-                short: t
-                long: token
-                help: authentication token for a user
-                required: true
-                takes_value: true
-

@@ -18,9 +18,7 @@ fn main() {
         keystore_lib::start_server();
     } else if let Some(matches) = matches.subcommand_matches("create_user") {
         let name = matches.value_of("name").unwrap();
-        let uuid = matches.value_of("uuid").unwrap();
-        let token = matches.value_of("token").unwrap();
-        keystore_lib::create_user(&name, &uuid, &token);
+        keystore_lib::create_user(&name);
     } else {
         let _ = app.print_help();
         println!("\n")

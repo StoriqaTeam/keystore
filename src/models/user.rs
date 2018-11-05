@@ -17,12 +17,6 @@ use prelude::*;
 pub struct UserId(Uuid);
 derive_newtype_sql!(user_id, SqlUuid, UserId, UserId);
 
-impl UserId {
-    pub fn new(uuid: Uuid) -> Self {
-        UserId(uuid)
-    }
-}
-
 impl Debug for UserId {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         Display::fmt(&self.0, f)
