@@ -3,7 +3,7 @@ use serde::{Deserialize, Deserializer};
 use std::env;
 
 use sentry_integration::SentryConfig;
-
+use logger::GrayLogConfig;
 use config_crate::{Config as RawConfig, ConfigError, Environment, File};
 
 #[derive(Debug, Deserialize, Clone)]
@@ -12,6 +12,7 @@ pub struct Config {
     pub database: Database,
     pub blockchain: Blockchain,
     pub sentry: Option<SentryConfig>,
+    pub graylog: Option<GrayLogConfig>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
