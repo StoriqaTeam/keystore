@@ -5,3 +5,6 @@ port = 8000
 [graylog]
 addr = "graylog-udp.internal.stq.cloud:32303"
 cluster = "pay-nightly.stq.cloud"
+
+[filelog]
+path = "keystore.log"

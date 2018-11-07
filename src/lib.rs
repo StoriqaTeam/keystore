@@ -42,6 +42,7 @@ extern crate serde;
 extern crate serde_json;
 extern crate serde_qs;
 extern crate serialization as btcserialization;
+extern crate simplelog;
 #[cfg(test)]
 extern crate tokio_core;
 extern crate uuid;
@@ -83,7 +84,7 @@ pub fn start_server() {
     // Prepare sentry integration
     let _sentry = sentry_integration::init(config.sentry.as_ref());
     // Prepare logger
-    logger::init(config.graylog.as_ref());
+    logger::init(&config);
     api::start_server(config);
 }
 

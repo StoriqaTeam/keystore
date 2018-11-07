@@ -40,6 +40,7 @@ serde = "1"
 serde_derive = "1"
 serde_json = "1"
 serde_qs = "0.4"
+simplelog = "0.5.3"
 serialization = { version = "0.1.0", path = "./bitcoin/parity-bitcoin/serialization" }
 tokio-core = "0.1"
 uuid = { version = "0.6", features = ["use_std", "v4", "serde"] }
