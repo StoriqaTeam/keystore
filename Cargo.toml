@@ -8,38 +8,41 @@ path = "src/lib.rs"
 name = "keystore_lib"
 
 [dependencies]
-ethkey = {version = "0.3.0", path = "./ethereum/ethkey"}
-ethcore-transaction = {version = "0.1.0", path = "./ethereum/ethcore/transaction"}
-ethereum-types = "0.4"
-keys = { version = "0.1.0", path = "./bitcoin/parity-bitcoin/keys" }
-chain = { version = "0.1.0", path = "./bitcoin/parity-bitcoin/chain" }
-primitives = { version = "0.1.0", path = "./bitcoin/parity-bitcoin/primitives" }
-serialization = { version = "0.1.0", path = "./bitcoin/parity-bitcoin/serialization" }
+base64 = "0.9"
 bitcrypto = { version = "0.1.0", path = "./bitcoin/parity-bitcoin/crypto" }
-script = { version = "0.1.0", path =  "./bitcoin/parity-bitcoin/script" }
+chain = { version = "0.1.0", path = "./bitcoin/parity-bitcoin/chain" }
+chrono = "0.4"
 clap = {version = "2", features = ["yaml"]}
 config = "0.9"
 diesel = { version = "1.3.3", features = ["postgres", "chrono", "extras"] }
 env_logger = "0.5"
+ethcore-transaction = {version = "0.1.0", path = "./ethereum/ethcore/transaction"}
+ethereum-types = "0.4"
+ethkey = {version = "0.3.0", path = "./ethereum/ethkey"}
 failure = "0.1"
 futures = "0.1"
 futures-cpupool = "0.1.7"
+gelf = { git = "https://github.com/StoriqaTeam/gelf-rust", rev = "b05956244f020bb4a62b859bd1025b6c699b2628" }
 http_router = "0.1"
 hyper = "0.12"
 hyper-tls = "0.3"
+keys = { version = "0.1.0", path = "./bitcoin/parity-bitcoin/keys" }
 lazy_static = "1.1.0"
-uuid = { version = "0.6", features = ["use_std", "v4", "serde"] }
-log = "0.4"
+log = { version = "0.4", features = ["std", "serde"] }
+primitives = { version = "0.1.0", path = "./bitcoin/parity-bitcoin/primitives" }
 r2d2 = "0.8.1"
+rand = "0.5"
+regex = "1"
+rlp = { version = "0.2.4", features = ["ethereum"] }
+script = { version = "0.1.0", path =  "./bitcoin/parity-bitcoin/script" }
 sentry = "0.12"
 serde = "1"
 serde_derive = "1"
 serde_json = "1"
 serde_qs = "0.4"
+simplelog = "0.5.3"
+serialization = { version = "0.1.0", path = "./bitcoin/parity-bitcoin/serialization" }
+tokio-core = "0.1"
+uuid = { version = "0.6", features = ["use_std", "v4", "serde"] }
 validator = "0.8"
 validator_derive = "0.8"
-regex = "1"
-rand = "0.5"
-base64 = "0.9"
-tokio-core = "0.1"
-rlp = { version = "0.2.4", features = ["ethereum"] }

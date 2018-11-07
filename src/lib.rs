@@ -20,12 +20,15 @@ extern crate sentry;
 extern crate base64;
 extern crate bitcrypto as btccrypto;
 extern crate chain as btcchain;
+extern crate chrono;
 extern crate config as config_crate;
+extern crate env_logger;
 extern crate ethcore_transaction;
 extern crate ethereum_types;
 extern crate ethkey;
 extern crate futures;
 extern crate futures_cpupool;
+extern crate gelf;
 extern crate hyper;
 extern crate hyper_tls;
 extern crate keys as btckey;
@@ -39,6 +42,7 @@ extern crate serde;
 extern crate serde_json;
 extern crate serde_qs;
 extern crate serialization as btcserialization;
+extern crate simplelog;
 #[cfg(test)]
 extern crate tokio_core;
 extern crate uuid;
@@ -49,6 +53,7 @@ mod macros;
 mod api;
 mod blockchain;
 mod config;
+mod logger;
 mod models;
 mod prelude;
 mod repos;
@@ -78,6 +83,8 @@ pub fn start_server() {
     let config = get_config();
     // Prepare sentry integration
     let _sentry = sentry_integration::init(config.sentry.as_ref());
+    // Prepare logger
+    logger::init(&config);
     api::start_server(config);
 }
 
