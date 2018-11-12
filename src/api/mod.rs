@@ -88,6 +88,7 @@ impl Service for ApiService {
                         GET /v1/users/{user_id: UserId}/keys => get_keys,
                         POST /v1/users/{user_id: UserId}/keys => post_keys,
                         POST /v1/transactions => post_transactions,
+                        POST /v1/approve => post_approve,
                         GET /healthcheck => get_healthcheck,
                         _ => not_found,
                     };
@@ -97,6 +98,8 @@ impl Service for ApiService {
                         config.blockchain.stq_gas_limit.clone(),
                         config.blockchain.stq_contract_address.clone(),
                         config.blockchain.stq_transfer_method_number.clone(),
+                        config.blockchain.stq_transfer_from_method_number.clone(),
+                        config.blockchain.stq_approve_method_number.clone(),
                         config.blockchain.ethereum_chain_id.clone(),
                         config.blockchain.btc_network.clone(),
                     ));

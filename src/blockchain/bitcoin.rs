@@ -166,6 +166,10 @@ impl BlockchainService for BitcoinService {
         self.sign_with_options(key, tx, false, None)
     }
 
+    fn approve(&self, key: PrivateKey, tx: ApproveInput) -> Result<RawTransaction, Error> {
+        unimplemented!()
+    }
+
     fn generate_key(&self, currency: Currency) -> Result<(PrivateKey, BlockchainAddress), Error> {
         assert_eq!(currency, Currency::Btc, "unexpected currency: {:?}", currency);
         let network = match self.btc_network {

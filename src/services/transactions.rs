@@ -10,6 +10,7 @@ use repos::{DbExecutor, KeysRepo};
 
 pub trait TransactionsService: Send + Sync + 'static {
     fn sign(&self, maybe_token: Option<AuthenticationToken>, transaction: UnsignedTransaction) -> ServiceFuture<RawTransaction>;
+    fn approve(&self, maybe_token: Option<AuthenticationToken>, input: ApproveInput) -> ServiceFuture<RawTransaction>;
 }
 
 pub struct TransactionsServiceImpl<E: DbExecutor> {
@@ -57,6 +58,37 @@ impl<E: DbExecutor> TransactionsService for TransactionsServiceImpl<E> {
                     }).and_then(move |key| {
                         signer
                             .sign(key.private_key, transaction)
+                            .map_err(ectx!(ErrorContext::SigningTransaction, ErrorKind::Internal))
+                    })
+            })
+        }))
+    }
+
+    fn approve(&self, maybe_token: Option<AuthenticationToken>, input: ApproveInput) -> ServiceFuture<RawTransaction> {
+        if input.currency != Currency::Stq {
+            return Box::new(Err(ectx!(err ErrorContext::NotSupportedCurrency, ErrorKind::MalformedInput)).into_future());
+        }
+        let db_executor = self.db_executor.clone();
+        let keys_repo = self.keys_repo.clone();
+        let signer = self.blockchain_signer.clone();
+        Box::new(self.auth_service.authenticate(maybe_token).and_then(move |user| {
+            let user_id = user.id.clone();
+            let user_id_clone = user_id.clone();
+            let user_id_clone2 = user_id.clone();
+            let blockchain_address = input.address.clone();
+            let blockchain_address_clone = blockchain_address.clone();
+            let currency = Currency::Stq;
+            db_executor.execute_transaction(move || {
+                keys_repo
+                    .find_by_address_and_currency(user_id, currency, blockchain_address)
+                    .map_err(ectx!(ErrorKind::Internal => user_id_clone))
+                    .and_then(|maybe_key| {
+                        maybe_key.ok_or(
+                            ectx!(err ErrorContext::NoWallet, ErrorKind::NotFound => user_id_clone2, blockchain_address_clone, currency),
+                        )
+                    }).and_then(move |key| {
+                        signer
+                            .approve(key.private_key, input)
                             .map_err(ectx!(ErrorContext::SigningTransaction, ErrorKind::Internal))
                     })
             })

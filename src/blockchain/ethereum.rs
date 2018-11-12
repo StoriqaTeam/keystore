@@ -16,15 +16,26 @@ pub struct EthereumService {
     stq_gas_limit: usize,
     stq_contract_address: String,
     stq_transfer_method_number: String,
+    stq_transfer_from_method_number: String,
+    stq_approve_method_number: String,
     chain_id: Option<u64>,
 }
 
 impl EthereumService {
-    pub fn new(stq_gas_limit: usize, stq_contract_address: String, stq_transfer_method_number: String, chain_id: Option<u64>) -> Self {
+    pub fn new(
+        stq_gas_limit: usize,
+        stq_contract_address: String,
+        stq_transfer_method_number: String,
+        stq_transfer_from_method_number: String,
+        stq_approve_method_number: String,
+        chain_id: Option<u64>,
+    ) -> Self {
         EthereumService {
             stq_gas_limit,
             stq_contract_address,
             stq_transfer_method_number,
+            stq_transfer_from_method_number,
+            stq_approve_method_number,
             chain_id,
         }
     }
@@ -37,6 +48,44 @@ impl BlockchainService for EthereumService {
         let private_key = PrivateKey::new(format!("{:x}", pair.secret()));
         let blockchain_address = BlockchainAddress::new(format!("{:x}", pair.address()));
         Ok((private_key, blockchain_address))
+    }
+    fn approve(&self, key: PrivateKey, input: ApproveInput) -> Result<RawTransaction, Error> {
+        let ApproveInput {
+            address,
+            approve_address,
+            currency,
+            value,
+            fee_price,
+            nonce,
+            ..
+        } = input;
+        let nonce: U256 = nonce.into();
+        let gas_price: U256 = fee_price.into();
+        let gas: U256 = self.stq_gas_limit.into();
+        let tx_value: U256 = 0.into();
+        let to = H160::from_str(&self.stq_contract_address).map_err(ectx!(try ErrorContext::H160Convert, ErrorKind::MalformedHexString))?;
+        let action = Action::Call(to);
+        let mut data: Vec<u8> = Vec::new();
+        let method = hex_to_bytes(self.stq_transfer_method_number.clone())?;
+        let approve_address = serialize_address(approve_address)?;
+        let value = serialize_amount(value);
+        data.extend(method.iter());
+        data.extend(approve_address.iter());
+        data.extend(value.iter());
+
+        let tx = Transaction {
+            nonce,
+            gas_price,
+            gas,
+            action,
+            value: tx_value,
+            data,
+        };
+        let secret = private_key_to_secret(key)?;
+        let signed = tx.sign(&secret, self.chain_id);
+        let raw_data = rlp::encode(&signed).to_vec();
+        let raw_hex_data = bytes_to_hex(&raw_data);
+        Ok(RawTransaction::new(raw_hex_data))
     }
     fn sign(&self, key: PrivateKey, tx: UnsignedTransaction) -> Result<RawTransaction, Error> {
         let UnsignedTransaction {
@@ -136,6 +185,8 @@ mod tests {
             stq_gas_limit: 100000,
             stq_contract_address: "1bf2092a42166b2ae19b7b23752e7d2dab5ba91a".to_string(),
             stq_transfer_method_number: "a9059cbb".to_string(),
+            stq_transfer_from_method_number: "23b872dd".to_string(),
+            stq_approve_method_number: "095ea7b3".to_string(),
             chain_id: Some(42),
         };
         let private_key = PrivateKey::new("b3c0e85a511cc6d21423a386de29dcf2cda6b2f2fa5ebb47948401bbb90458db".to_string());

@@ -44,6 +44,8 @@ pub enum ErrorContext {
     NoWallet,
     #[fail(display = "service error context - signing transaction")]
     SigningTransaction,
+    #[fail(display = "service error context - currency is not supported")]
+    NotSupportedCurrency,
 }
 
 derive_error_impls!();

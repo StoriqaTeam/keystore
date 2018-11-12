@@ -22,3 +22,19 @@ pub fn post_transactions(ctx: &Context) -> ControllerFuture {
             }),
     )
 }
+
+pub fn post_approve(ctx: &Context) -> ControllerFuture {
+    let transactions_service = ctx.transactions_service.clone();
+    let maybe_token = ctx.get_auth_token();
+    Box::new(
+        parse_body::<PostApproveRequest>(ctx.body.clone())
+            .and_then(move |input| {
+                let input_clone = input.clone();
+                let tx: ApproveInput = input.into();
+                transactions_service.approve(maybe_token, tx).map_err(ectx!(convert => input_clone))
+            }).and_then(|raw_transaction| {
+                let transaction_response = PostTransactionsResponse { raw: raw_transaction };
+                response_with_model(&transaction_response)
+            }),
+    )
+}
