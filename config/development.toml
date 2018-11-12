@@ -9,6 +9,8 @@ thread_pool_size = 4
 [blockchain]
 stq_contract_address = "1bf2092a42166b2ae19b7b23752e7d2dab5ba91a"
 stq_transfer_method_number = "a9059cbb"
+stq_approve_method_number = "095ea7b3"
+stq_transfer_from_method_number = "23b872dd"
 stq_gas_limit = 100000
 ethereum_chain_id = 42
 btc_network = "test"
