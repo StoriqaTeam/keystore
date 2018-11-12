@@ -89,6 +89,7 @@ impl BlockchainService for EthereumService {
     }
     fn sign(&self, key: PrivateKey, tx: UnsignedTransaction) -> Result<RawTransaction, Error> {
         let UnsignedTransaction {
+            from,
             to,
             currency,
             value,
@@ -122,10 +123,12 @@ impl BlockchainService for EthereumService {
             Currency::Eth => Vec::new(),
             Currency::Stq => {
                 let mut data: Vec<u8> = Vec::new();
-                let method = hex_to_bytes(self.stq_transfer_method_number.clone())?;
+                let method = hex_to_bytes(self.stq_transfer_from_method_number.clone())?;
+                let from = serialize_address(from)?;
                 let to = serialize_address(to)?;
                 let value = serialize_amount(value);
                 data.extend(method.iter());
+                data.extend(from.iter());
                 data.extend(to.iter());
                 data.extend(value.iter());
                 data
