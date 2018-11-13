@@ -8,6 +8,7 @@ use schema::users::dsl::*;
 
 pub trait UsersRepo: Send + Sync + 'static {
     fn find_user_by_authentication_token(&self, token: AuthenticationToken) -> Result<Option<User>, Error>;
+    fn find_system_user(&self) -> Result<Option<User>, Error>;
     fn create(&self, payload: NewUser) -> Result<User, Error>;
 }
 
@@ -15,6 +16,17 @@ pub trait UsersRepo: Send + Sync + 'static {
 pub struct UsersRepoImpl;
 
 impl<'a> UsersRepo for UsersRepoImpl {
+    fn find_system_user(&self) -> Result<Option<User>, Error> {
+        with_tls_connection(|conn| {
+            users
+                .filter(name.eq("system"))
+                .limit(1)
+                .get_result(conn)
+                .optional()
+                .map_err(ectx!(ErrorKind::Internal))
+        })
+    }
+
     fn find_user_by_authentication_token(&self, token: AuthenticationToken) -> Result<Option<User>, Error> {
         with_tls_connection(|conn| {
             users

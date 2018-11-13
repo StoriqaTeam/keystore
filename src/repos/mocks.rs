@@ -86,6 +86,11 @@ impl UsersRepo for UsersRepoMock {
         Ok(data.iter().filter(|x| x.authentication_token == token).nth(0).cloned())
     }
 
+    fn find_system_user(&self) -> Result<Option<User>, Error> {
+        let data = self.data.lock().unwrap();
+        Ok(data.iter().filter(|x| x.name == "system".to_string()).nth(0).cloned())
+    }
+
     fn create(&self, payload: NewUser) -> Result<User, Error> {
         let mut data = self.data.lock().unwrap();
         let res = User {
