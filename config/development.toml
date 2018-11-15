@@ -14,4 +14,4 @@ stq_transfer_from_method_number = "23b872dd"
 stq_gas_limit = 100000
 ethereum_chain_id = 42
 btc_network = "test"
-stq_controller_address = ""
+stq_controller_address = "630c70c639c7588eeb6c5a1ff2ec9a3af7cb5b34"
