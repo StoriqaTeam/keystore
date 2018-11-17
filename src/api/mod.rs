@@ -103,7 +103,7 @@ impl Service for ApiService {
                         config.blockchain.ethereum_chain_id.clone(),
                         config.blockchain.btc_network.clone(),
                     ));
-                    let keys_repo = Arc::new(KeysRepoImpl);
+                    let keys_repo = Arc::new(KeysRepoImpl::new(config.blockchain.main_key.clone()));
                     let keys_service = Arc::new(KeysServiceImpl::new(
                         auth_service.clone(),
                         blockchain_service.clone(),

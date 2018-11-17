@@ -14,7 +14,15 @@ pub trait KeysRepo: Send + Sync + 'static {
     fn find_by_address(&self, current_user_id: UserId, address: BlockchainAddress) -> Result<Option<Key>, Error>;
 }
 
-pub struct KeysRepoImpl;
+pub struct KeysRepoImpl {
+    main_key: String,
+}
+
+impl KeysRepoImpl {
+    pub fn new(main_key: String) -> Self {
+        KeysRepoImpl { main_key }
+    }
+}
 
 impl KeysRepo for KeysRepoImpl {
     fn list(&self, current_user_id: UserId, offset: i64, limit: i64) -> Result<Vec<Key>, Error> {

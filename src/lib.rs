@@ -22,6 +22,7 @@ extern crate bitcrypto as btccrypto;
 extern crate chain as btcchain;
 extern crate chrono;
 extern crate config as config_crate;
+extern crate crypto;
 extern crate env_logger;
 extern crate ethcore_transaction;
 extern crate ethereum_types;

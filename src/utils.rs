@@ -1,3 +1,4 @@
+use crypto::buffer::{ReadBuffer, WriteBuffer};
 use failure::Fail;
 use futures::future;
 use futures::prelude::*;
@@ -58,4 +59,66 @@ pub fn read_body(body: hyper::Body) -> impl Future<Item = Vec<u8>, Error = hyper
         acc.extend_from_slice(&*chunk);
         future::ok::<_, hyper::Error>(acc)
     })
+}
+
+pub fn encrypt(data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, crypto::symmetriccipher::SymmetricCipherError> {
+    let mut encryptor = crypto::aes::cbc_encryptor(crypto::aes::KeySize::KeySize256, key, iv, crypto::blockmodes::PkcsPadding);
+
+    let mut final_result = Vec::<u8>::new();
+    let mut read_buffer = crypto::buffer::RefReadBuffer::new(data);
+    let mut buffer = [0; 4096];
+    let mut write_buffer = crypto::buffer::RefWriteBuffer::new(&mut buffer);
+
+    loop {
+        let result = try!(encryptor.encrypt(&mut read_buffer, &mut write_buffer, true));
+
+        final_result.extend(write_buffer.take_read_buffer().take_remaining().iter().map(|&i| i));
+
+        match result {
+            crypto::buffer::BufferResult::BufferUnderflow => break,
+            crypto::buffer::BufferResult::BufferOverflow => {}
+        }
+    }
+
+    Ok(final_result)
+}
+
+pub fn decrypt(encrypted_data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, crypto::symmetriccipher::SymmetricCipherError> {
+    let mut decryptor = crypto::aes::cbc_decryptor(crypto::aes::KeySize::KeySize256, key, iv, crypto::blockmodes::PkcsPadding);
+
+    let mut final_result = Vec::<u8>::new();
+    let mut read_buffer = crypto::buffer::RefReadBuffer::new(encrypted_data);
+    let mut buffer = [0; 4096];
+    let mut write_buffer = crypto::buffer::RefWriteBuffer::new(&mut buffer);
+
+    loop {
+        let result = try!(decryptor.decrypt(&mut read_buffer, &mut write_buffer, true));
+        final_result.extend(write_buffer.take_read_buffer().take_remaining().iter().map(|&i| i));
+        match result {
+            crypto::buffer::BufferResult::BufferUnderflow => break,
+            crypto::buffer::BufferResult::BufferOverflow => {}
+        }
+    }
+
+    Ok(final_result)
+}
+
+pub fn encode_hex(bytes: &[u8]) -> String {
+    let mut res = String::new();
+    for byte in bytes.iter() {
+        res.push_str(&format!("{:02x}", byte));
+    }
+    res
+}
+
+pub fn decode_hex(hex_str: &str) -> Vec<u8> {
+    hex_str
+        .as_bytes()
+        .chunks(2)
+        .map(|chunk| {
+            let mut hex = String::new();
+            hex.push(chunk[0].into());
+            hex.push(chunk[1].into());
+            u8::from_str_radix(&hex, 16).unwrap()
+        }).collect()
 }

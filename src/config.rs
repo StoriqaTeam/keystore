@@ -40,6 +40,7 @@ pub struct Blockchain {
     #[serde(deserialize_with = "deserialize_btc_network")]
     pub btc_network: BtcNetwork,
     pub stq_controller_address: BlockchainAddress,
+    pub main_key: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]
