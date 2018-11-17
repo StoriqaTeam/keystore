@@ -84,6 +84,30 @@ paths:
             schema:
               $ref: '#/components/schemas/TransactionCreateInput'
 
+  /approve:
+    post:
+      summary: Approves ERC-20 token account
+      description: You need to be authenticated to use this method.
+      security:
+        - Bearer: []
+      tags:
+        - transactions
+      responses:
+        200:
+          description: Ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  raw:
+                    $ref: '#/components/schemas/RawTransaction'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApproveInput'
+
 
 components:
   responses:
@@ -196,6 +220,36 @@ components:
           $ref: '#/components/schemas/Uuid'
         currency:
           $ref: '#/components/schemas/Currency'
+    ApproveInput:
+      type: object
+      required:
+        - id
+        - feePrice
+        - value
+        - currency
+        - address
+        - nonce
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        address:
+          type: string
+          description: Blockchain address.
+          example: '0xf79867895ad58d6d'
+        currency:
+          $ref: '#/components/schemas/Currency'
+        value:
+          type: integer
+          description: Value of transaction in wei / satoshis for transaction (value up to 10^38)
+          example: 1890000000000000000
+        feePrice:
+          type: integer
+          description: Gas price in wei for ethereum or satoshis per byte for bitcoin (value up to 10^38)
+          example: 89000000000000
+        nonce:
+          type: integer
+          description: Nonce from ethereum account (required for ethereum and ERC20 tokens) (value up to 10^38). This value is required for Ehtereum and all ERC20 tokens. It must be fetched from the Blockchain gateway service and passed here.
+          example: 2
     TransactionCreateInput:
       type: object
       required:

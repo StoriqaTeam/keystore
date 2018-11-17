@@ -88,15 +88,18 @@ impl Service for ApiService {
                         GET /v1/users/{user_id: UserId}/keys => get_keys,
                         POST /v1/users/{user_id: UserId}/keys => post_keys,
                         POST /v1/transactions => post_transactions,
+                        POST /v1/approve => post_approve,
                         GET /healthcheck => get_healthcheck,
                         _ => not_found,
                     };
-
-                    let auth_service = Arc::new(AuthServiceImpl::new(Arc::new(UsersRepoImpl), db_executor.clone()));
+                    let users_repo = Arc::new(UsersRepoImpl);
+                    let auth_service = Arc::new(AuthServiceImpl::new(users_repo.clone(), db_executor.clone()));
                     let blockchain_service = Arc::new(BlockchainServiceImpl::new(
                         config.blockchain.stq_gas_limit.clone(),
                         config.blockchain.stq_contract_address.clone(),
                         config.blockchain.stq_transfer_method_number.clone(),
+                        config.blockchain.stq_transfer_from_method_number.clone(),
+                        config.blockchain.stq_approve_method_number.clone(),
                         config.blockchain.ethereum_chain_id.clone(),
                         config.blockchain.btc_network.clone(),
                     ));
@@ -107,11 +110,12 @@ impl Service for ApiService {
                         keys_repo.clone(),
                         db_executor.clone(),
                     ));
-
                     let transactions_service = Arc::new(TransactionsServiceImpl::new(
                         auth_service.clone(),
                         keys_repo.clone(),
+                        users_repo.clone(),
                         blockchain_service.clone(),
+                        config.blockchain.stq_controller_address.clone(),
                         db_executor.clone(),
                     ));
 

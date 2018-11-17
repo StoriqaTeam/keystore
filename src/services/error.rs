@@ -42,8 +42,12 @@ pub enum ErrorContext {
     NotOwnResources,
     #[fail(display = "service error context - no wallet with this address found")]
     NoWallet,
+    #[fail(display = "service error context - no system user found")]
+    NoSystemUser,
     #[fail(display = "service error context - signing transaction")]
     SigningTransaction,
+    #[fail(display = "service error context - currency is not supported")]
+    NotSupportedCurrency,
 }
 
 derive_error_impls!();

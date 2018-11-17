@@ -4,6 +4,7 @@ use std::env;
 
 use config_crate::{Config as RawConfig, ConfigError, Environment, File};
 use logger::{FileLogConfig, GrayLogConfig};
+use models::BlockchainAddress;
 use sentry_integration::SentryConfig;
 
 #[derive(Debug, Deserialize, Clone)]
@@ -33,9 +34,12 @@ pub struct Blockchain {
     pub stq_gas_limit: usize,
     pub stq_contract_address: String,
     pub stq_transfer_method_number: String,
+    pub stq_approve_method_number: String,
+    pub stq_transfer_from_method_number: String,
     pub ethereum_chain_id: Option<u64>,
     #[serde(deserialize_with = "deserialize_btc_network")]
     pub btc_network: BtcNetwork,
+    pub stq_controller_address: BlockchainAddress,
 }
 
 #[derive(Debug, Deserialize, Clone)]

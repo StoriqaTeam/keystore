@@ -33,18 +33,12 @@ impl KeysRepo for KeysRepoMock {
             .collect())
     }
 
-    fn find_by_address_and_currency(
-        &self,
-        current_user_id: UserId,
-        cur: Currency,
-        address: BlockchainAddress,
-    ) -> Result<Option<Key>, Error> {
+    fn find_by_address(&self, current_user_id: UserId, address: BlockchainAddress) -> Result<Option<Key>, Error> {
         let data = self.data.lock().unwrap();
         let keys: Vec<Key> = data
             .iter()
             .filter(|x| x.owner_id == current_user_id)
             .filter(|x| x.blockchain_address == address)
-            .filter(|x| x.currency == cur)
             .take(1)
             .cloned()
             .collect();
@@ -84,6 +78,11 @@ impl UsersRepo for UsersRepoMock {
     fn find_user_by_authentication_token(&self, token: AuthenticationToken) -> Result<Option<User>, Error> {
         let data = self.data.lock().unwrap();
         Ok(data.iter().filter(|x| x.authentication_token == token).nth(0).cloned())
+    }
+
+    fn find_system_user(&self) -> Result<Option<User>, Error> {
+        let data = self.data.lock().unwrap();
+        Ok(data.iter().filter(|x| x.name == "system".to_string()).nth(0).cloned())
     }
 
     fn create(&self, payload: NewUser) -> Result<User, Error> {

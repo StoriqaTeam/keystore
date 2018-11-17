@@ -17,6 +17,7 @@ use models::*;
 
 pub trait BlockchainService: Send + Sync + 'static {
     fn sign(&self, key: PrivateKey, tx: UnsignedTransaction) -> Result<RawTransaction, Error>;
+    fn approve(&self, key: PrivateKey, tx: ApproveInput) -> Result<RawTransaction, Error>;
     fn generate_key(&self, currency: Currency) -> Result<(PrivateKey, BlockchainAddress), Error>;
 }
 
@@ -30,10 +31,19 @@ impl BlockchainServiceImpl {
         stq_gas_limit: usize,
         stq_contract_address: String,
         stq_transfer_method_number: String,
+        stq_transfer_from_method_number: String,
+        stq_approve_method_number: String,
         chain_id: Option<u64>,
         btc_network: BtcNetwork,
     ) -> Self {
-        let ethereum_service = EthereumService::new(stq_gas_limit, stq_contract_address, stq_transfer_method_number, chain_id);
+        let ethereum_service = EthereumService::new(
+            stq_gas_limit,
+            stq_contract_address,
+            stq_transfer_method_number,
+            stq_transfer_from_method_number,
+            stq_approve_method_number,
+            chain_id,
+        );
         let bitcoin_service = BitcoinService::new(btc_network);
         Self {
             ethereum_service,
@@ -48,6 +58,9 @@ impl BlockchainService for BlockchainServiceImpl {
             Currency::Eth | Currency::Stq => self.ethereum_service.sign(key, tx),
             Currency::Btc => self.bitcoin_service.sign(key, tx),
         }
+    }
+    fn approve(&self, key: PrivateKey, input: ApproveInput) -> Result<RawTransaction, Error> {
+        self.ethereum_service.approve(key, input)
     }
     fn generate_key(&self, currency: Currency) -> Result<(PrivateKey, BlockchainAddress), Error> {
         match currency {
