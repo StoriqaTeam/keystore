@@ -28,11 +28,16 @@ impl Debug for KeyId {
 }
 
 /// Hex encoded private key
+#[derive(Clone, PartialEq, Eq)]
+pub struct PrivateKey(String);
+mask_logs!(PrivateKey);
+
+/// Hex encoded encrypted private key
 #[derive(FromSqlRow, AsExpression, Clone, PartialEq, Eq)]
 #[sql_type = "VarChar"]
-pub struct PrivateKey(String);
-derive_newtype_sql!(private_key_id, VarChar, PrivateKey, PrivateKey);
-mask_logs!(PrivateKey);
+pub struct EncryptedPrivateKey(String);
+derive_newtype_sql!(encrypted_private_key, VarChar, EncryptedPrivateKey, EncryptedPrivateKey);
+mask_logs!(EncryptedPrivateKey);
 
 impl PrivateKey {
     pub fn new(data: String) -> Self {
@@ -43,25 +48,35 @@ impl PrivateKey {
         self.0
     }
 
-    pub fn encrypt(&self, main_key: &str) -> String {
-        let key = decode_hex(main_key);
-        let mut random = rand::OsRng::new().unwrap();
-        let mut iv = [0u8; 16];
-        random.fill_bytes(&mut iv);
-        let decrypted = decode_hex(&self.0);
-        println!("dec: {:?}, key: {:?}, iv: {:?}", &decrypted, &key, &iv);
-        let encrypted = aes_enc(&decrypted, &key, &iv).unwrap();
-        let mut res = encode_hex(&iv);
-        res.push_str(&encode_hex(&encrypted));
-        res
-    }
-
-    pub fn decrypt(encrypted: &str, main_key: &str) -> Self {
-        let key = decode_hex(main_key);
+    pub fn from_encrypted(encrypted_pk: EncryptedPrivateKey, aes_key: &str) -> Self {
+        let key = decode_hex(aes_key);
+        let encrypted = encrypted_pk.into_inner();
         let iv = decode_hex(&encrypted[0..32]);
         let encrypted = decode_hex(&encrypted[32..]);
         let decrypted = aes_dec(&encrypted, &key, &iv).unwrap();
         PrivateKey(encode_hex(&decrypted))
+    }
+}
+
+impl EncryptedPrivateKey {
+    pub fn new(data: String) -> Self {
+        EncryptedPrivateKey(data)
+    }
+
+    pub fn into_inner(self) -> String {
+        self.0
+    }
+
+    pub fn from_private_key(pk: PrivateKey, aes_key: &str) -> Self {
+        let key = decode_hex(aes_key);
+        let mut random = rand::OsRng::new().unwrap();
+        let mut iv = [0u8; 16];
+        random.fill_bytes(&mut iv);
+        let decrypted = decode_hex(&pk.into_inner());
+        let encrypted = aes_enc(&decrypted, &key, &iv).unwrap();
+        let mut res = encode_hex(&iv);
+        res.push_str(&encode_hex(&encrypted));
+        EncryptedPrivateKey(res)
     }
 }
 
@@ -81,7 +96,7 @@ impl BlockchainAddress {
     }
 }
 
-#[derive(Debug, Queryable, Clone)]
+#[derive(Debug, Clone)]
 pub struct Key {
     pub id: KeyId,
     pub private_key: PrivateKey,
@@ -92,14 +107,60 @@ pub struct Key {
     pub updated_at: SystemTime,
 }
 
-#[derive(Debug, Queryable, Insertable, Clone)]
-#[table_name = "keys"]
+impl Key {
+    pub fn from_encrypted(encrypted_key: EncryptedKey, aes_key: &str) -> Self {
+        Key {
+            id: encrypted_key.id,
+            private_key: PrivateKey::from_encrypted(encrypted_key.private_key, &aes_key),
+            blockchain_address: encrypted_key.blockchain_address,
+            currency: encrypted_key.currency,
+            owner_id: encrypted_key.owner_id,
+            created_at: encrypted_key.created_at,
+            updated_at: encrypted_key.updated_at,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct NewKey {
     pub id: KeyId,
     pub private_key: PrivateKey,
     pub blockchain_address: BlockchainAddress,
     pub currency: Currency,
     pub owner_id: UserId,
+}
+
+#[derive(Debug, Queryable, Clone)]
+pub struct EncryptedKey {
+    pub id: KeyId,
+    pub private_key: EncryptedPrivateKey,
+    pub blockchain_address: BlockchainAddress,
+    pub currency: Currency,
+    pub owner_id: UserId,
+    pub created_at: SystemTime,
+    pub updated_at: SystemTime,
+}
+
+#[derive(Debug, Queryable, Insertable, Clone)]
+#[table_name = "keys"]
+pub struct NewEncryptedKey {
+    pub id: KeyId,
+    pub private_key: EncryptedPrivateKey,
+    pub blockchain_address: BlockchainAddress,
+    pub currency: Currency,
+    pub owner_id: UserId,
+}
+
+impl NewEncryptedKey {
+    pub fn from_new_key(new_key: NewKey, aes_key: &str) -> Self {
+        NewEncryptedKey {
+            id: new_key.id,
+            private_key: EncryptedPrivateKey::from_private_key(new_key.private_key, &aes_key),
+            blockchain_address: new_key.blockchain_address,
+            currency: new_key.currency,
+            owner_id: new_key.owner_id,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -116,10 +177,13 @@ mod tests {
             pk.resize(number_of_elems as usize, 0);
             random.fill_bytes(&mut pk);
             let pk = PrivateKey(encode_hex(&pk));
-            let mut main_key = [0u8; 32];
-            random.fill_bytes(&mut main_key);
-            let main_key = encode_hex(&main_key);
-            assert_eq!(pk, PrivateKey::decrypt(&pk.encrypt(&main_key), &main_key));
+            let mut aes_key = [0u8; 32];
+            random.fill_bytes(&mut aes_key);
+            let aes_key = encode_hex(&aes_key);
+            assert_eq!(
+                pk.clone(),
+                PrivateKey::from_encrypted(EncryptedPrivateKey::from_private_key(pk, &aes_key), &aes_key)
+            );
         }
     }
 }
