@@ -8,6 +8,7 @@ path = "src/lib.rs"
 name = "keystore_lib"
 
 [dependencies]
+rust-crypto = "^0.2"
 base64 = "0.9"
 bitcrypto = { version = "0.1.0", path = "./bitcoin/parity-bitcoin/crypto" }
 chain = { version = "0.1.0", path = "./bitcoin/parity-bitcoin/chain" }

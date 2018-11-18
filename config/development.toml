@@ -15,3 +15,4 @@ stq_gas_limit = 60000
 ethereum_chain_id = 42
 btc_network = "test"
 stq_controller_address = "630c70c639c7588eeb6c5a1ff2ec9a3af7cb5b34"
+main_key = "9e41f07d31e44062c688c08aa99e57d8fda2cba546da31f6a075e1a252f48a93"
