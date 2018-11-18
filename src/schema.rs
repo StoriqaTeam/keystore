@@ -22,7 +22,4 @@ table! {
 
 joinable!(keys -> users (owner_id));
 
-allow_tables_to_appear_in_same_query!(
-    keys,
-    users,
-);
+allow_tables_to_appear_in_same_query!(keys, users,);
