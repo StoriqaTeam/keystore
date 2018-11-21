@@ -70,12 +70,14 @@ impl BitcoinService {
             let e = format_err!("{}", e);
             ectx!(try err e, ErrorKind::MalformedAddress)
         })?;
-        if address_to.kind != AddressType::P2PKH {
-            return Err(ectx!(err ErrorContext::UnsupportedAddress, ErrorKind::MalformedAddress => input_tx));
-        }
+
         let address_to_hash = address_to.hash;
 
-        let output_script = ScriptBuilder::build_p2pkh(&address_to_hash);
+        let output_script = match address_to.kind {
+            AddressType::P2PKH => ScriptBuilder::build_p2pkh(&address_to_hash),
+            AddressType::P2SH => ScriptBuilder::build_p2sh(&address_to_hash),
+        };
+
         let output = TransactionOutput {
             value: input_value,
             script_pubkey: output_script.to_bytes(),
