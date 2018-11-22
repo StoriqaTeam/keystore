@@ -8,7 +8,7 @@ use models::*;
 pub struct BlockchainServiceMock;
 
 impl BlockchainService for BlockchainServiceMock {
-    fn derive_address(&self, _currency: Currency, key: PrivateKey) -> Result<BlockchainAddress, Error> {
+    fn derive_address(&self, _currency: Currency, _key: PrivateKey) -> Result<BlockchainAddress, Error> {
         unimplemented!()
     }
     fn generate_key(&self, _currency: Currency) -> Result<(PrivateKey, BlockchainAddress), Error> {

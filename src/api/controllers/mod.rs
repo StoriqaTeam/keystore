@@ -6,16 +6,18 @@ use hyper::{header::HeaderValue, header::AUTHORIZATION, Body, HeaderMap, Method,
 
 use super::error::*;
 use models::*;
-use services::{KeysService, TransactionsService};
+use services::{KeysService, MetricsService, TransactionsService};
 
 mod fallback;
 mod healthcheck;
 mod keys;
+mod metrics;
 mod transactions;
 
 pub use self::fallback::*;
 pub use self::healthcheck::*;
 pub use self::keys::*;
+pub use self::metrics::*;
 pub use self::transactions::*;
 
 pub type ControllerFuture = Box<Future<Item = Response<Body>, Error = Error> + Send>;
@@ -28,6 +30,7 @@ pub struct Context {
     pub headers: HeaderMap<HeaderValue>,
     pub keys_service: Arc<KeysService>,
     pub transactions_service: Arc<TransactionsService>,
+    pub metrics_service: Arc<MetricsService>,
 }
 
 impl Context {

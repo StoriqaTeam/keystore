@@ -3,6 +3,7 @@ use std::time::SystemTime;
 
 use super::error::*;
 use super::executor::DbExecutor;
+use super::executor::Isolation;
 use super::keys::*;
 use super::users::*;
 use models::*;
@@ -127,6 +128,14 @@ impl DbExecutor for DbExecutorMock {
         T: Send + 'static,
         F: FnOnce() -> Result<T, E> + Send + 'static,
         E: From<Error> + Send + 'static,
+    {
+        Box::new(f().into_future())
+    }
+    fn execute_transaction_with_isolation<F, T, E>(&self, _isolation: Isolation, f: F) -> Box<Future<Item = T, Error = E> + Send + 'static>
+    where
+        T: Send + 'static,
+        F: FnOnce() -> Result<T, E> + Send + 'static,
+        E: From<Error> + Fail,
     {
         Box::new(f().into_future())
     }

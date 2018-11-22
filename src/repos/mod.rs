@@ -6,7 +6,7 @@ mod mocks;
 mod users;
 
 pub use self::error::*;
-pub use self::executor::{DbExecutor, DbExecutorImpl};
+pub use self::executor::{DbExecutor, DbExecutorImpl, Isolation};
 pub use self::keys::*;
 #[cfg(test)]
 pub use self::mocks::*;

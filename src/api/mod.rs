@@ -30,7 +30,7 @@ use models::*;
 use prelude::*;
 use repos::{DbExecutorImpl, KeysRepoImpl, UsersRepoImpl};
 use serde_json;
-use services::{AuthServiceImpl, KeysServiceImpl, TransactionsServiceImpl};
+use services::{AuthServiceImpl, KeysServiceImpl, MetricsServiceImpl, TransactionsServiceImpl};
 
 #[derive(Clone)]
 pub struct ApiService {
@@ -90,6 +90,7 @@ impl Service for ApiService {
                         POST /v1/transactions => post_transactions,
                         POST /v1/approve => post_approve,
                         GET /healthcheck => get_healthcheck,
+                        GET /v1/metrics => get_metrics,
                         _ => not_found,
                     };
                     let users_repo = Arc::new(UsersRepoImpl);
@@ -117,6 +118,11 @@ impl Service for ApiService {
                         config.blockchain.stq_controller_address.clone(),
                         db_executor.clone(),
                     ));
+                    let metrics_service = Arc::new(MetricsServiceImpl::new(
+                        keys_repo.clone(),
+                        blockchain_service.clone(),
+                        db_executor.clone(),
+                    ));
 
                     let ctx = Context {
                         body,
@@ -125,6 +131,7 @@ impl Service for ApiService {
                         headers: parts.headers,
                         keys_service,
                         transactions_service,
+                        metrics_service,
                     };
 
                     debug!("Received request {}", ctx);

@@ -11,6 +11,15 @@ thread_local! {
     pub static DB_CONN: RefCell<Option<PgPooledConnection>> = RefCell::new(None)
 }
 
+/// Transaction isolation level
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Isolation {
+    ReadCommitted,
+    RepeatableRead,
+    Serializable,
+}
+
 /// One of these methods should be used anytime you use Repo methods.
 /// It effectively put a db connection to thread local storage, so that repo can use it.
 /// This trait is also responsible for removing unhealthy connections from tls.
@@ -26,6 +35,16 @@ pub trait DbExecutor: Clone + Send + Sync + 'static {
 
     /// Execute mutations and queries inside one transaction
     fn execute_transaction<F, T, E>(&self, f: F) -> Box<Future<Item = T, Error = E> + Send + 'static>
+    where
+        T: Send + 'static,
+        F: FnOnce() -> Result<T, E> + Send + 'static,
+        E: From<Error> + Fail,
+    {
+        self.execute_transaction_with_isolation(Isolation::ReadCommitted, f)
+    }
+
+    /// Execute mutations and queries inside one transaction with certain isolation level
+    fn execute_transaction_with_isolation<F, T, E>(&self, isolation: Isolation, f: F) -> Box<Future<Item = T, Error = E> + Send + 'static>
     where
         T: Send + 'static,
         F: FnOnce() -> Result<T, E> + Send + 'static,
@@ -63,7 +82,7 @@ impl DbExecutor for DbExecutorImpl {
         let db_pool = self.db_pool.clone();
         Box::new(self.db_thread_pool.spawn_fn(move || {
             DB_CONN.with(move |tls_conn_cell| -> Result<T, E> {
-                let _ = put_connection_into_tls(db_pool, tls_conn_cell)?;
+                put_connection_into_tls(&db_pool, tls_conn_cell)?;
                 f().map_err(move |e| {
                     remove_connection_from_tls_if_broken(tls_conn_cell);
                     e
@@ -72,7 +91,7 @@ impl DbExecutor for DbExecutorImpl {
         }))
     }
 
-    fn execute_transaction<F, T, E>(&self, f: F) -> Box<Future<Item = T, Error = E> + Send + 'static>
+    fn execute_transaction_with_isolation<F, T, E>(&self, isolation: Isolation, f: F) -> Box<Future<Item = T, Error = E> + Send + 'static>
     where
         T: Send + 'static,
         F: FnOnce() -> Result<T, E> + Send + 'static,
@@ -81,21 +100,27 @@ impl DbExecutor for DbExecutorImpl {
         let db_pool = self.db_pool.clone();
         Box::new(self.db_thread_pool.spawn_fn(move || {
             DB_CONN.with(move |tls_conn_cell| -> Result<T, E> {
-                let _ = put_connection_into_tls(db_pool, tls_conn_cell)?;
+                put_connection_into_tls(&db_pool, tls_conn_cell)?;
                 let mut err: Option<E> = None;
                 let res = {
                     let err_ref = &mut err;
                     with_tls_connection(move |conn| {
-                        conn.transaction(|| {
-                            f().map_err(|e| {
-                                *err_ref = Some(e);
-                                DieselError::RollbackTransaction
-                            })
-                        }).map_err(ectx!(ErrorSource::Diesel, ErrorKind::Internal))
+                        let builder = match isolation {
+                            Isolation::ReadCommitted => conn.build_transaction().read_committed(),
+                            Isolation::RepeatableRead => conn.build_transaction().repeatable_read(),
+                            Isolation::Serializable => conn.build_transaction().serializable(),
+                        };
+                        builder
+                            .run(|| {
+                                f().map_err(|e| {
+                                    *err_ref = Some(e);
+                                    DieselError::RollbackTransaction
+                                })
+                            }).map_err(ectx!(ErrorSource::Diesel, ErrorKind::Internal))
                     })
                 };
                 res.map_err(|e| {
-                    let e: E = err.unwrap_or(e.into());
+                    let e: E = err.unwrap_or_else(|| e.into());
                     remove_connection_from_tls_if_broken(tls_conn_cell);
                     e
                 })
@@ -139,14 +164,14 @@ where
 
 /// Checkout connection from db_pool and put it into thead local storage
 /// if there is no connection already in thread local storage
-fn put_connection_into_tls(db_pool: PgPool, tls_conn_cell: &RefCell<Option<PgPooledConnection>>) -> Result<(), Error> {
+fn put_connection_into_tls(db_pool: &PgPool, tls_conn_cell: &RefCell<Option<PgPooledConnection>>) -> Result<(), Error> {
     let mut maybe_conn = tls_conn_cell.borrow_mut();
     if maybe_conn.is_none() {
         match db_pool.get() {
             Ok(conn) => *maybe_conn = Some(conn),
             Err(e) => {
                 let e: Error = ectx!(err e, ErrorSource::R2D2, ErrorKind::Internal);
-                return Err(e.into());
+                return Err(e);
             }
         }
     }
