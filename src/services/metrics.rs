@@ -33,16 +33,23 @@ impl<E: DbExecutor> MetricsService for MetricsServiceImpl<E> {
         self.db_executor
             .execute_transaction_with_isolation(Isolation::RepeatableRead, move || {
                 let keys = self_.keys_repo.all().map_err(ectx!(try ErrorKind::Internal))?;
+                let mut total_keys: u64 = 0;
+                let mut failed_derivations_count: u64 = 0;
                 for key in keys {
-                    assert_eq!(
-                        key.blockchain_address,
-                        self_
-                            .blockchain_service
-                            .derive_address(key.currency, key.private_key)
-                            .map_err(ectx!(try ErrorKind::Internal))?
-                    );
+                    total_keys += 1;
+                    let derived = self_
+                        .blockchain_service
+                        .derive_address(key.currency, key.private_key)
+                        .map_err(ectx!(try ErrorKind::Internal))?;
+
+                    if key.blockchain_address != derived {
+                        failed_derivations_count += 1;
+                    }
                 }
-                Ok(Metrics::default())
+                Ok(Metrics {
+                    total_keys,
+                    failed_derivations_count,
+                })
             })
     }
 }
