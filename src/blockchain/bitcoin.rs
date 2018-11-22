@@ -164,6 +164,15 @@ impl BitcoinService {
 impl BlockchainService for BitcoinService {
     // https://en.bitcoin.it/wiki/OP_CHECKSIG
     // https://bitcoin.stackexchange.com/questions/3374/how-to-redeem-a-basic-tx
+    fn derive_address(&self, _currency: Currency, key: PrivateKey) -> Result<BlockchainAddress, Error> {
+        let private: BtcPrivateKey = key
+            .into_inner()
+            .parse()
+            .map_err(|_| ectx!(try err ErrorContext::PrivateKeyConvert, ErrorKind::Internal))?;
+        let keypair = KeyPair::from_private(private).map_err(|_| ectx!(try err ErrorContext::PrivateKeyConvert, ErrorKind::Internal))?;
+        Ok(BlockchainAddress::new(format!("{}", keypair.address())))
+    }
+
     fn sign(&self, key: PrivateKey, tx: UnsignedTransaction) -> Result<RawTransaction, Error> {
         self.sign_with_options(key, tx, false, None)
     }

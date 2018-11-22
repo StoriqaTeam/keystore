@@ -19,6 +19,7 @@ pub trait BlockchainService: Send + Sync + 'static {
     fn sign(&self, key: PrivateKey, tx: UnsignedTransaction) -> Result<RawTransaction, Error>;
     fn approve(&self, key: PrivateKey, tx: ApproveInput) -> Result<RawTransaction, Error>;
     fn generate_key(&self, currency: Currency) -> Result<(PrivateKey, BlockchainAddress), Error>;
+    fn derive_address(&self, currency: Currency, key: PrivateKey) -> Result<BlockchainAddress, Error>;
 }
 
 pub struct BlockchainServiceImpl {
@@ -64,6 +65,13 @@ impl BlockchainService for BlockchainServiceImpl {
         match currency {
             Currency::Eth | Currency::Stq => self.ethereum_service.generate_key(currency),
             Currency::Btc => self.bitcoin_service.generate_key(currency),
+        }
+    }
+
+    fn derive_address(&self, currency: Currency, key: PrivateKey) -> Result<BlockchainAddress, Error> {
+        match currency {
+            Currency::Eth | Currency::Stq => self.ethereum_service.derive_address(currency, key),
+            Currency::Btc => self.bitcoin_service.derive_address(currency, key),
         }
     }
 }

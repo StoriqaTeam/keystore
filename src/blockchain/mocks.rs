@@ -8,6 +8,9 @@ use models::*;
 pub struct BlockchainServiceMock;
 
 impl BlockchainService for BlockchainServiceMock {
+    fn derive_address(&self, _currency: Currency, key: PrivateKey) -> Result<BlockchainAddress, Error> {
+        unimplemented!()
+    }
     fn generate_key(&self, _currency: Currency) -> Result<(PrivateKey, BlockchainAddress), Error> {
         let key: String = thread_rng().sample_iter(&Alphanumeric).take(30).collect();
         let address: String = thread_rng().sample_iter(&Alphanumeric).take(15).collect();

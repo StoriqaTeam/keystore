@@ -6,8 +6,8 @@ use super::utils::{bytes_to_hex, hex_to_bytes};
 use super::BlockchainService;
 use ethcore_transaction::{Action, Transaction};
 use ethereum_types::{H160, U256};
-use ethkey::Secret;
 use ethkey::{Generator, Random};
+use ethkey::{KeyPair, Secret};
 use models::*;
 use prelude::*;
 
@@ -39,6 +39,15 @@ impl EthereumService {
 }
 
 impl BlockchainService for EthereumService {
+    fn derive_address(&self, _currency: Currency, key: PrivateKey) -> Result<BlockchainAddress, Error> {
+        let secret = private_key_to_secret(key)?;
+        Ok(BlockchainAddress::new(format!(
+            "{:x}",
+            KeyPair::from_secret(secret)
+                .map_err(ectx!(try ErrorContext::PrivateKeyConvert, ErrorKind::MalformedHexString))?
+                .address()
+        )))
+    }
     fn generate_key(&self, _currency: Currency) -> Result<(PrivateKey, BlockchainAddress), Error> {
         let mut random = Random;
         let pair = random.generate().map_err(ectx!(try ErrorSource::Random, ErrorKind::Internal))?;
