@@ -31,6 +31,7 @@ impl RawTransaction {
         RawTransaction(data)
     }
 
+    #[allow(dead_code)]
     pub fn into_inner(self) -> String {
         self.0
     }

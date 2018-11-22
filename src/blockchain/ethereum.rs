@@ -6,8 +6,8 @@ use super::utils::{bytes_to_hex, hex_to_bytes};
 use super::BlockchainService;
 use ethcore_transaction::{Action, Transaction};
 use ethereum_types::{H160, U256};
-use ethkey::Secret;
 use ethkey::{Generator, Random};
+use ethkey::{KeyPair, Secret};
 use models::*;
 use prelude::*;
 
@@ -15,7 +15,6 @@ use prelude::*;
 pub struct EthereumService {
     stq_gas_limit: usize,
     stq_contract_address: String,
-    stq_transfer_method_number: String,
     stq_transfer_from_method_number: String,
     stq_approve_method_number: String,
     chain_id: Option<u64>,
@@ -25,7 +24,6 @@ impl EthereumService {
     pub fn new(
         stq_gas_limit: usize,
         stq_contract_address: String,
-        stq_transfer_method_number: String,
         stq_transfer_from_method_number: String,
         stq_approve_method_number: String,
         chain_id: Option<u64>,
@@ -33,7 +31,6 @@ impl EthereumService {
         EthereumService {
             stq_gas_limit,
             stq_contract_address,
-            stq_transfer_method_number,
             stq_transfer_from_method_number,
             stq_approve_method_number,
             chain_id,
@@ -42,6 +39,15 @@ impl EthereumService {
 }
 
 impl BlockchainService for EthereumService {
+    fn derive_address(&self, _currency: Currency, key: PrivateKey) -> Result<BlockchainAddress, Error> {
+        let secret = private_key_to_secret(key)?;
+        Ok(BlockchainAddress::new(format!(
+            "{:x}",
+            KeyPair::from_secret(secret)
+                .map_err(ectx!(try ErrorContext::PrivateKeyConvert, ErrorKind::MalformedHexString))?
+                .address()
+        )))
+    }
     fn generate_key(&self, _currency: Currency) -> Result<(PrivateKey, BlockchainAddress), Error> {
         let mut random = Random;
         let pair = random.generate().map_err(ectx!(try ErrorSource::Random, ErrorKind::Internal))?;
@@ -185,7 +191,6 @@ mod tests {
         let ethereum_service = EthereumService {
             stq_gas_limit: 100000,
             stq_contract_address: "1bf2092a42166b2ae19b7b23752e7d2dab5ba91a".to_string(),
-            stq_transfer_method_number: "a9059cbb".to_string(),
             stq_transfer_from_method_number: "23b872dd".to_string(),
             stq_approve_method_number: "095ea7b3".to_string(),
             chain_id: Some(42),
@@ -234,7 +239,6 @@ mod tests {
         let ethereum_service = EthereumService {
             stq_gas_limit: 100000,
             stq_contract_address: "1bf2092a42166b2ae19b7b23752e7d2dab5ba91a".to_string(),
-            stq_transfer_method_number: "a9059cbb".to_string(),
             stq_transfer_from_method_number: "23b872dd".to_string(),
             stq_approve_method_number: "095ea7b3".to_string(),
             chain_id: Some(42),

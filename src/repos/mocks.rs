@@ -3,6 +3,7 @@ use std::time::SystemTime;
 
 use super::error::*;
 use super::executor::DbExecutor;
+use super::executor::Isolation;
 use super::keys::*;
 use super::users::*;
 use models::*;
@@ -22,6 +23,10 @@ impl KeysRepoMock {
 }
 
 impl KeysRepo for KeysRepoMock {
+    fn all(&self) -> Result<Vec<Key>, Error> {
+        let data = self.data.lock().unwrap();
+        Ok(data.iter().cloned().collect())
+    }
     fn list(&self, current_user_id: UserId, offset: i64, limit: i64) -> Result<Vec<Key>, Error> {
         let data = self.data.lock().unwrap();
         Ok(data
@@ -67,6 +72,7 @@ pub struct UsersRepoMock {
 }
 
 impl UsersRepoMock {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         Self {
             data: Arc::new(Mutex::new(Vec::new())),
@@ -122,6 +128,14 @@ impl DbExecutor for DbExecutorMock {
         T: Send + 'static,
         F: FnOnce() -> Result<T, E> + Send + 'static,
         E: From<Error> + Send + 'static,
+    {
+        Box::new(f().into_future())
+    }
+    fn execute_transaction_with_isolation<F, T, E>(&self, _isolation: Isolation, f: F) -> Box<Future<Item = T, Error = E> + Send + 'static>
+    where
+        T: Send + 'static,
+        F: FnOnce() -> Result<T, E> + Send + 'static,
+        E: From<Error> + Fail,
     {
         Box::new(f().into_future())
     }
