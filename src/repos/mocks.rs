@@ -22,6 +22,10 @@ impl KeysRepoMock {
 }
 
 impl KeysRepo for KeysRepoMock {
+    fn all(&self) -> Result<Vec<Key>, Error> {
+        let data = self.data.lock().unwrap();
+        Ok(data.iter().cloned().collect())
+    }
     fn list(&self, current_user_id: UserId, offset: i64, limit: i64) -> Result<Vec<Key>, Error> {
         let data = self.data.lock().unwrap();
         Ok(data

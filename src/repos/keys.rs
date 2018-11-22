@@ -8,6 +8,7 @@ use schema::keys::dsl::*;
 
 pub trait KeysRepo: Send + Sync + 'static {
     fn list(&self, current_user_id: UserId, offset: i64, limit: i64) -> Result<Vec<Key>, Error>;
+    fn all(&self) -> Result<Vec<Key>, Error>;
     fn create(&self, payload: NewKey) -> Result<Key, Error>;
     // We don't check currency, since there's case when you want to transfer
     // ether to stq account (to be able to make withdrawal)
@@ -25,6 +26,16 @@ impl KeysRepoImpl {
 }
 
 impl KeysRepo for KeysRepoImpl {
+    fn all(&self) -> Result<Vec<Key>, Error> {
+        with_tls_connection(|conn| {
+            let encrypted_keys = keys.get_results::<EncryptedKey>(conn).map_err(ectx!(try ErrorKind::Internal))?;
+            Ok(encrypted_keys
+                .into_iter()
+                .map(|encrypted_key| Key::from_encrypted(encrypted_key, &self.aes_key))
+                .collect())
+        })
+    }
+
     fn list(&self, current_user_id: UserId, offset: i64, limit: i64) -> Result<Vec<Key>, Error> {
         with_tls_connection(|conn| {
             let encrypted_keys = keys
