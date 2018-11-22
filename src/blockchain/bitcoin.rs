@@ -168,7 +168,7 @@ impl BlockchainService for BitcoinService {
         self.sign_with_options(key, tx, false, None)
     }
 
-    fn approve(&self, key: PrivateKey, tx: ApproveInput) -> Result<RawTransaction, Error> {
+    fn approve(&self, _key: PrivateKey, _tx: ApproveInput) -> Result<RawTransaction, Error> {
         unimplemented!()
     }
 

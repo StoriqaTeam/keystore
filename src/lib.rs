@@ -6,13 +6,11 @@ extern crate failure;
 extern crate diesel;
 #[macro_use]
 extern crate serde_derive;
-#[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
 #[macro_use]
 extern crate http_router;
-#[macro_use]
 extern crate validator_derive;
 #[macro_use]
 extern crate sentry;

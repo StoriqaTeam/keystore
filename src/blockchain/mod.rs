@@ -30,7 +30,6 @@ impl BlockchainServiceImpl {
     pub fn new(
         stq_gas_limit: usize,
         stq_contract_address: String,
-        stq_transfer_method_number: String,
         stq_transfer_from_method_number: String,
         stq_approve_method_number: String,
         chain_id: Option<u64>,
@@ -39,7 +38,6 @@ impl BlockchainServiceImpl {
         let ethereum_service = EthereumService::new(
             stq_gas_limit,
             stq_contract_address,
-            stq_transfer_method_number,
             stq_transfer_from_method_number,
             stq_approve_method_number,
             chain_id,

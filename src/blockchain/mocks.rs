@@ -19,7 +19,7 @@ impl BlockchainService for BlockchainServiceMock {
         Ok(RawTransaction::new(tx))
     }
 
-    fn approve(&self, key: PrivateKey, tx: ApproveInput) -> Result<RawTransaction, Error> {
+    fn approve(&self, _key: PrivateKey, _tx: ApproveInput) -> Result<RawTransaction, Error> {
         let tx: String = thread_rng().sample_iter(&Alphanumeric).take(30).collect();
         Ok(RawTransaction::new(tx))
     }

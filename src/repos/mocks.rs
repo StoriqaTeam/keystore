@@ -67,6 +67,7 @@ pub struct UsersRepoMock {
 }
 
 impl UsersRepoMock {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         Self {
             data: Arc::new(Mutex::new(Vec::new())),

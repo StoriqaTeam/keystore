@@ -15,7 +15,6 @@ use prelude::*;
 pub struct EthereumService {
     stq_gas_limit: usize,
     stq_contract_address: String,
-    stq_transfer_method_number: String,
     stq_transfer_from_method_number: String,
     stq_approve_method_number: String,
     chain_id: Option<u64>,
@@ -25,7 +24,6 @@ impl EthereumService {
     pub fn new(
         stq_gas_limit: usize,
         stq_contract_address: String,
-        stq_transfer_method_number: String,
         stq_transfer_from_method_number: String,
         stq_approve_method_number: String,
         chain_id: Option<u64>,
@@ -33,7 +31,6 @@ impl EthereumService {
         EthereumService {
             stq_gas_limit,
             stq_contract_address,
-            stq_transfer_method_number,
             stq_transfer_from_method_number,
             stq_approve_method_number,
             chain_id,
@@ -185,7 +182,6 @@ mod tests {
         let ethereum_service = EthereumService {
             stq_gas_limit: 100000,
             stq_contract_address: "1bf2092a42166b2ae19b7b23752e7d2dab5ba91a".to_string(),
-            stq_transfer_method_number: "a9059cbb".to_string(),
             stq_transfer_from_method_number: "23b872dd".to_string(),
             stq_approve_method_number: "095ea7b3".to_string(),
             chain_id: Some(42),
@@ -234,7 +230,6 @@ mod tests {
         let ethereum_service = EthereumService {
             stq_gas_limit: 100000,
             stq_contract_address: "1bf2092a42166b2ae19b7b23752e7d2dab5ba91a".to_string(),
-            stq_transfer_method_number: "a9059cbb".to_string(),
             stq_transfer_from_method_number: "23b872dd".to_string(),
             stq_approve_method_number: "095ea7b3".to_string(),
             chain_id: Some(42),
