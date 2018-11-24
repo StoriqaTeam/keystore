@@ -108,9 +108,7 @@ impl BitcoinService {
         };
         // Estimating fees and deduct them from the last output (the one with address equal to input)
         let tx_raw = serialize(&tx).take();
-        let fees = self
-            .estimate_fees(input_tx.fee_price, inputs.len() as u64, tx_raw.len() as u64)
-            .ok_or(ectx!(try err ErrorKind::Overflow, ErrorKind::Overflow))?;
+        let fees = self.estimate_fees(input_tx.fee_price, inputs.len() as u64, tx_raw.len() as u64);
         let outputs_len = tx.outputs.len();
         {
             let output_ref = tx
@@ -152,12 +150,12 @@ impl BitcoinService {
         Ok(RawTransaction::new(tx_raw_hex))
     }
 
-    fn estimate_fees(&self, fee_price: Amount, inputs_count: u64, tx_size: u64) -> Option<u64> {
+    fn estimate_fees(&self, fee_price: f64, inputs_count: u64, tx_size: u64) -> u64 {
         let script_sig_size = 1 + 71 + 1 + 1 + 64;
         let script_pubkey_size = 3 + 20 + 2;
         let signature_bytes = (script_sig_size - script_pubkey_size) * inputs_count;
-        let estimated_final_size = tx_size + signature_bytes;
-        fee_price.u64().and_then(|fee| fee.checked_mul(estimated_final_size))
+        let estimated_final_size = (tx_size + signature_bytes) as f64;
+        (fee_price * estimated_final_size) as u64
     }
 }
 
@@ -235,7 +233,7 @@ mod tests {
             to: BlockchainAddress::new("ms3iZko2BcbigHBufFUum2Avg9PfozmZY4".to_string()),
             currency: Currency::Btc,
             value: Amount::new(100000),
-            fee_price: Amount::new(0),
+            fee_price: 0.0,
             nonce: None,
             utxos: Some(vec![Utxo {
                 tx_hash: "90e56bda920e72e9caae86302c284f18255a419927a0649fca839faeca1b8610".to_string(),

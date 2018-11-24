@@ -64,7 +64,8 @@ impl BlockchainService for EthereumService {
             ..
         } = input;
         let nonce: U256 = nonce.into();
-        let gas_price: U256 = fee_price.into();
+        // this is generally a big number, so ok to cast to int
+        let gas_price: U256 = Amount::new(fee_price as u128).into();
         let gas: U256 = self.stq_gas_limit.into();
         let tx_value: U256 = 0.into();
         let to = H160::from_str(&self.stq_contract_address).map_err(ectx!(try ErrorContext::H160Convert, ErrorKind::MalformedHexString))?;
@@ -103,7 +104,7 @@ impl BlockchainService for EthereumService {
         } = tx;
         let nonce = maybe_nonce.ok_or(ectx!(try err ErrorKind::MissingNonce, ErrorSource::Signer, ErrorKind::MissingNonce))?;
         let nonce: U256 = nonce.into();
-        let gas_price: U256 = fee_price.into();
+        let gas_price: U256 = Amount::new(fee_price as u128).into();
         let gas: U256 = self.stq_gas_limit.into();
         let tx_value: U256 = match currency {
             Currency::Eth => value.into(),
@@ -207,7 +208,7 @@ mod tests {
                     to: to.clone(),
                     currency: Currency::Eth,
                     value: Amount::new(25000000000000000000),
-                    fee_price: Amount::new(30000000000),
+                    fee_price: 30000000000.0f64,
                     nonce: Some(0),
                     utxos: None,
                 },
@@ -220,7 +221,7 @@ mod tests {
                     to: to.clone(),
                     currency: Currency::Stq,
                     value: Amount::new(25_000_000_000_000_000_000),
-                    fee_price: Amount::new(30000000000),
+                    fee_price: 30000000000.0f64,
                     nonce: Some(0),
                     utxos: None,
                 },
@@ -255,7 +256,7 @@ mod tests {
                     approve_address,
                     currency: Currency::Stq,
                     value: Amount::new(25000000000000000000),
-                    fee_price: Amount::new(30000000000),
+                    fee_price: 30000000000.0f64,
                     nonce: 0,
                 },
                 "f8aa808506fc23ac00830186a0941bf2092a42166b2ae19b7b23752e7d2dab5ba91a80b844095ea7b300000000000000000000000000d44dd2f6a2d2005326db58ec5137204c5cba5a0000000000000000000000000000000000000000000000015af1d78b58c4000077a066cc102349d86e0b09b1d8ea7cdd4f61183ef2bc9bc3ba7f46e602a2f017af7fa061e1d644965908efea05e4dc609b9c434b723a27ebbde4a2c71a50e4705490aa",
