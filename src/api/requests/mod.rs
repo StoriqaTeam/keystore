@@ -22,7 +22,7 @@ pub struct PostTransactionsRequest {
     pub to: BlockchainAddress,
     pub currency: Currency,
     pub value: Amount,
-    pub fee_price: Amount,
+    pub fee_price: f64,
     pub nonce: Option<u64>,
     pub utxos: Option<Vec<Utxo>>,
 }
@@ -35,7 +35,7 @@ pub struct PostApproveRequest {
     pub approve_address: BlockchainAddress,
     pub currency: Currency,
     pub value: Amount,
-    pub fee_price: Amount,
+    pub fee_price: f64,
     pub nonce: u64,
 }
 
