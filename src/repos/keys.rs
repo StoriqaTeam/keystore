@@ -51,10 +51,11 @@ impl KeysRepo for KeysRepoImpl {
         })
     }
 
-    fn find_by_address(&self, current_user_id: UserId, address: BlockchainAddress) -> Result<Option<Key>, Error> {
+    fn find_by_address(&self, _current_user_id: UserId, address: BlockchainAddress) -> Result<Option<Key>, Error> {
+        // no need for current user check, because essentially all dr accounts are system
+        // e.g. you put in ether, change btc and withdraw btc. Or transfer your eth to another workplace
         with_tls_connection(|conn| {
             let maybe_enc_key = keys
-                .filter(owner_id.eq(current_user_id))
                 .filter(blockchain_address.eq(address))
                 .limit(1)
                 .get_results(conn)
