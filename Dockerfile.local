@@ -1,0 +1,42 @@
+FROM rust:1.31
+ARG PROFILE=debug
+
+WORKDIR /app
+
+COPY wait_for_it.sh /utils/
+RUN mkdir -p /usr/local/cargo/bin/ \
+  && apt-get update \
+  && apt-get upgrade -y \
+  && apt-get install -y wget gnupg2 ca-certificates openssl libpq5 libmariadbclient18 \
+  && sh -c 'wget -q https://www.postgresql.org/media/keys/ACCC4CF8.asc -O - | apt-key add -' \
+  && sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ stretch-pgdg main" >> /etc/apt/sources.list.d/pgdg.list' \
+  && wget -q https://s3.eu-central-1.amazonaws.com/dumpster.stq/diesel -O /usr/local/cargo/bin/diesel \
+  && chmod +x /usr/local/cargo/bin/diesel \
+  && apt-get purge -y wget \
+  && apt-get autoremove -y \
+  && apt-get clean -y \
+  && rm -rf /var/lib/apt/lists/ \
+  && adduser --disabled-password --gecos "" --home /app --no-create-home -u 5000 app \
+  && chown -R app: /app
+ENV PATH=$PATH:/usr/local/cargo/bin/
+
+USER app
+
+RUN USER=app cargo init --lib --name app
+
+# don't invalidate dependencies' build cache if they weren't updated
+COPY --chown=app Cargo.toml Cargo.lock diesel.toml rustfmt.toml ./
+COPY --chown=app bitcoin ./bitcoin/
+COPY --chown=app ethereum ./ethereum/
+RUN cargo build --all-targets
+
+COPY --chown=app src ./src/
+RUN cargo build --all-targets
+
+COPY --chown=app config ./config/
+COPY --chown=app docs ./docs/
+COPY --chown=app migrations ./migrations/
+
+EXPOSE 8000
+
+ENTRYPOINT ["sh", "-c", "diesel migration run && ./target/debug/keystore server"]

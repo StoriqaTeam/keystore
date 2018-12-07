@@ -70,7 +70,7 @@ impl Config {
         s.merge(File::with_name(&format!("config/{}", env)).required(false))?;
         s.merge(File::with_name("config/secret.toml").required(false))?;
 
-        s.merge(Environment::with_prefix("STQ_PAYMENTS"))?;
+        s.merge(Environment::with_prefix("STQ_PAYMENTS").separator("_"))?;
         s.try_into()
     }
 }
