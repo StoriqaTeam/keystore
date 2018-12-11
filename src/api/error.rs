@@ -2,7 +2,6 @@ use failure::{Backtrace, Context, Fail};
 use services::ErrorKind as ServiceErrorKind;
 use std::fmt;
 use std::fmt::Display;
-use validator::ValidationErrors;
 
 #[derive(Debug)]
 pub struct Error {
@@ -19,7 +18,7 @@ pub enum ErrorKind {
     #[fail(display = "controller error - not found")]
     NotFound,
     #[fail(display = "controller error - unprocessable entity")]
-    UnprocessableEntity(ValidationErrors),
+    UnprocessableEntity(serde_json::Value),
     #[fail(display = "controller error - internal error")]
     Internal,
 }
@@ -53,10 +52,13 @@ derive_error_impls!();
 impl From<ServiceErrorKind> for ErrorKind {
     fn from(err: ServiceErrorKind) -> Self {
         match err {
-            ServiceErrorKind::Internal => ErrorKind::Internal,
+            ServiceErrorKind::Internal { .. } => ErrorKind::Internal,
             ServiceErrorKind::Unauthorized => ErrorKind::Unauthorized,
             ServiceErrorKind::MalformedInput => ErrorKind::BadRequest,
-            ServiceErrorKind::InvalidInput(validation_errors) => ErrorKind::UnprocessableEntity(validation_errors),
+            ServiceErrorKind::Validation(error) => match serde_json::to_value(error) {
+                Ok(json) => ErrorKind::UnprocessableEntity(json),
+                Err(_) => ErrorKind::Internal,
+            },
             ServiceErrorKind::NotFound => ErrorKind::NotFound,
         }
     }

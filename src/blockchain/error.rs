@@ -8,43 +8,60 @@ pub struct Error {
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Fail)]
+#[derive(Clone, Debug, Fail, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ErrorKind {
     #[fail(display = "blockchain error - internal")]
-    Internal,
-    #[fail(display = "blockchain error - malformed hex string")]
-    MalformedHexString,
-    #[fail(display = "blockchain error - malformed address")]
-    MalformedAddress,
-    #[fail(display = "blockchain error - missing nonce")]
-    MissingNonce,
-    #[fail(display = "blockchain error - overflow")]
-    Overflow,
-    #[fail(display = "blockchain error - not enough sathoshis in utxos")]
-    NotEnoughUtxo,
+    Internal { error: InternalError, source: Option<ErrorSource> },
+    #[fail(display = "blockchain error - validation")]
+    Validation(ValidationError),
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Fail)]
-pub enum ErrorContext {
-    #[fail(display = "blockchain context - error converting to H160")]
-    H160Convert,
-    #[fail(display = "blockchain context - error serializing blockchain address")]
-    AddressConvert,
-    #[fail(display = "blockchain error - error serializing private key")]
-    PrivateKeyConvert,
-    #[fail(display = "blockchain error - unsupported blockchain address")]
-    UnsupportedAddress,
-    #[fail(display = "blockchain error - error signing message")]
+#[derive(Clone, Debug, Fail, PartialEq, Eq, Serialize, Deserialize)]
+pub enum InternalError {
+    #[fail(display = "malformed method number")]
+    MalformedMethodNumber { value: String },
+    #[fail(display = "malformed STQ contract address")]
+    MalformedStqContractAddress { value: String },
+    #[fail(display = "overflow")]
+    Overflow,
+    #[fail(display = "error generating random number")]
+    Random,
+    #[fail(display = "serialization error")]
+    Serialization,
+    #[fail(display = "error signing message")]
     Signature,
 }
 
 #[allow(dead_code)]
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Fail)]
+#[derive(Clone, Debug, Fail, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ValidationError {
+    #[fail(display = "malformed address")]
+    MalformedAddress { value: String },
+    #[fail(display = "malformed hex string")]
+    MalformedHexString { value: String },
+    #[fail(display = "malformed private key")]
+    MalformedPrivateKey { value: String },
+    #[fail(display = "missing nonce")]
+    MissingNonce,
+    #[fail(display = "not enough sathoshis in utxos")]
+    NotEnoughUtxo,
+    #[fail(display = "overflow")]
+    Overflow { number: String },
+    #[fail(display = "unsupported blockchain address type")]
+    UnsupportedAddressType { value: String },
+    #[fail(display = "unsupported currency")]
+    UnsupportedCurrency { value: String },
+}
+
+#[allow(dead_code)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Fail, Serialize, Deserialize)]
 pub enum ErrorSource {
-    #[fail(display = "blockchain source - error generating random numer using OS rng")]
+    #[fail(display = "OS rng")]
     Random,
-    #[fail(display = "blockchain source - error in transaction signing")]
+    #[fail(display = "serde")]
+    Serde,
+    #[fail(display = "transaction signer")]
     Signer,
 }
 

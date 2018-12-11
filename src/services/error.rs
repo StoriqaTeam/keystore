@@ -4,6 +4,7 @@ use std::fmt::Display;
 use failure::{Backtrace, Context, Fail};
 use validator::ValidationErrors;
 
+use blockchain::{ErrorKind as BlockchainErrorKind, ValidationError as BlockchainValidationError};
 use repos::{Error as ReposError, ErrorKind as ReposErrorKind};
 
 #[derive(Debug)]
@@ -20,8 +21,8 @@ pub enum ErrorKind {
     MalformedInput,
     #[fail(display = "service error - not found")]
     NotFound,
-    #[fail(display = "service error - invalid input, errors: {}", _0)]
-    InvalidInput(ValidationErrors),
+    #[fail(display = "service error - validation - {}", _0)]
+    Validation(ValidationError),
     #[fail(display = "service error - internal error")]
     Internal,
 }
@@ -31,6 +32,14 @@ pub enum ErrorKind {
 pub enum ErrorSource {
     #[fail(display = "service error source - r2d2")]
     R2D2,
+}
+
+#[derive(Clone, Debug, Fail, PartialEq, Serialize)]
+pub enum ValidationError {
+    #[fail(display = "blockchain - {}", _0)]
+    Blockchain(BlockchainValidationError),
+    #[fail(display = "validator - {}", _0)]
+    Validator(ValidationErrors),
 }
 
 #[allow(dead_code)]
@@ -63,7 +72,16 @@ impl From<ReposErrorKind> for ErrorKind {
     fn from(e: ReposErrorKind) -> ErrorKind {
         match e {
             ReposErrorKind::Internal => ErrorKind::Internal,
-            ReposErrorKind::Constraints(validation_errors) => ErrorKind::InvalidInput(validation_errors),
+            ReposErrorKind::Constraints(validation_errors) => ErrorKind::Validation(ValidationError::Validator(validation_errors)),
+        }
+    }
+}
+
+impl From<BlockchainErrorKind> for ErrorKind {
+    fn from(e: BlockchainErrorKind) -> ErrorKind {
+        match e {
+            BlockchainErrorKind::Internal { .. } => ErrorKind::Internal,
+            BlockchainErrorKind::Validation(error) => ErrorKind::Validation(ValidationError::Blockchain(error)),
         }
     }
 }

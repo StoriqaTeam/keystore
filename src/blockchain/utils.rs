@@ -14,12 +14,15 @@ pub fn hex_to_bytes(hex: String) -> Result<Vec<u8>, Error> {
     chars
         .chunks(2)
         .map(|chunk| {
-            let hex = hex.clone();
             if chunk.len() < 2 {
-                let e: Error = ErrorKind::MalformedHexString.into();
-                return Err(ectx!(err e, ErrorKind::MalformedHexString => hex));
+                let error = ValidationError::MalformedHexString { value: hex.clone() };
+                return Err(ErrorKind::Validation(error).into());
             }
             let string = format!("{}{}", chunk[0], chunk[1]);
-            u8::from_str_radix(&string, 16).map_err(ectx!(ErrorKind::MalformedHexString => hex))
-        }).collect()
+            u8::from_str_radix(&string, 16).map_err({
+                let error = ValidationError::MalformedHexString { value: hex.clone() };
+                ectx!(ErrorKind::Validation(error))
+            })
+        })
+        .collect()
 }
