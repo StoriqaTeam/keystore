@@ -74,7 +74,8 @@ impl BlockchainService for EthereumService {
         let gas_price: U256 = Amount::new(fee_price as u128).into();
         let gas: U256 = self.stq_gas_limit.into();
         let tx_value: U256 = 0.into();
-        let to = H160::from_str(&self.stq_contract_address).map_err(ectx!(try ErrorKind::Internal => self.stq_contract_address))?;
+        let to = H160::from_str(&self.stq_contract_address)
+            .map_err(ectx!(try ErrorContext::MalformedStqContractAddress, ErrorKind::Internal => self.stq_contract_address))?;
         let action = Action::Call(to);
         let mut data: Vec<u8> = Vec::new();
         let method = hex_to_bytes(self.stq_approve_method_number.clone())
