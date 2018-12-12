@@ -8,6 +8,7 @@ use ethcore_transaction::{Action, Transaction};
 use ethereum_types::{H160, U256};
 use ethkey::{Generator, Random};
 use ethkey::{KeyPair, Secret};
+use failure::err_msg;
 use models::*;
 use prelude::*;
 
@@ -40,11 +41,16 @@ impl EthereumService {
 
 impl BlockchainService for EthereumService {
     fn derive_address(&self, _currency: Currency, key: PrivateKey) -> Result<BlockchainAddress, Error> {
-        let secret = private_key_to_secret(key)?;
+        let secret = private_key_to_secret(key.clone())?;
         Ok(BlockchainAddress::new(format!(
             "{:x}",
             KeyPair::from_secret(secret)
-                .map_err(ectx!(try ErrorContext::PrivateKeyConvert, ErrorKind::MalformedHexString))?
+                .map_err({
+                    let error = ValidationError::MalformedPrivateKey {
+                        value: key.clone().into_inner(),
+                    };
+                    ectx!(try ErrorKind::InvalidPrivateKey(error))
+                })?
                 .address()
         )))
     }
@@ -68,11 +74,14 @@ impl BlockchainService for EthereumService {
         let gas_price: U256 = Amount::new(fee_price as u128).into();
         let gas: U256 = self.stq_gas_limit.into();
         let tx_value: U256 = 0.into();
-        let to = H160::from_str(&self.stq_contract_address).map_err(ectx!(try ErrorContext::H160Convert, ErrorKind::MalformedHexString))?;
+        let to = H160::from_str(&self.stq_contract_address)
+            .map_err(ectx!(try ErrorContext::MalformedStqContractAddress, ErrorKind::Internal => self.stq_contract_address))?;
         let action = Action::Call(to);
         let mut data: Vec<u8> = Vec::new();
-        let method = hex_to_bytes(self.stq_approve_method_number.clone())?;
-        let approve_address = serialize_address(approve_address)?;
+        let method = hex_to_bytes(self.stq_approve_method_number.clone())
+            .map_err(ectx!(try ErrorContext::MalformedMethodNumber, ErrorKind::Internal => self.stq_approve_method_number))?;
+        let approve_address =
+            serialize_address(approve_address.clone()).map_err(ectx!(try ErrorSource::Serde, ErrorKind::Internal => approve_address))?;
         let value = serialize_amount(value);
         data.extend(method.iter());
         data.extend(approve_address.iter());
@@ -102,35 +111,56 @@ impl BlockchainService for EthereumService {
             nonce: maybe_nonce,
             ..
         } = tx;
-        let nonce = maybe_nonce.ok_or(ectx!(try err ErrorKind::MissingNonce, ErrorSource::Signer, ErrorKind::MissingNonce))?;
+        let nonce = maybe_nonce.ok_or(ErrorKind::InvalidUnsignedTransaction(ValidationError::MissingNonce))?;
         let nonce: U256 = nonce.into();
         let gas_price: U256 = Amount::new(fee_price as u128).into();
         let gas: U256 = self.stq_gas_limit.into();
         let tx_value: U256 = match currency {
             Currency::Eth => value.into(),
             Currency::Stq => 0.into(),
-            _ => panic!("attempted to sign non-ethereum currency with ethereum algos "),
+            other => {
+                let cause = err_msg("attempted to sign non-ethereum currency with ethereum algos");
+                let error = ValidationError::UnsupportedCurrency { value: other.to_string() };
+                Err(ectx!(try err cause, ErrorKind::InvalidUnsignedTransaction(error)))?
+            }
         };
         let action = match currency {
             Currency::Eth => {
-                let to = H160::from_str(&to.clone().into_inner())
-                    .map_err(ectx!(try ErrorContext::H160Convert, ErrorKind::MalformedHexString))?;
+                let to = H160::from_str(&to.clone().into_inner()).map_err({
+                    let error = ValidationError::MalformedHexString {
+                        value: to.clone().into_inner(),
+                    };
+                    ectx!(try ErrorKind::InvalidUnsignedTransaction(error))
+                })?;
                 Action::Call(to)
             }
             Currency::Stq => {
-                let to = H160::from_str(&self.stq_contract_address)
-                    .map_err(ectx!(try ErrorContext::H160Convert, ErrorKind::MalformedHexString))?;
+                let to = H160::from_str(&self.stq_contract_address).map_err(
+                    ectx!(try ErrorContext::MalformedStqContractAddress, ErrorKind::Internal => self.stq_contract_address.clone()),
+                )?;
                 Action::Call(to)
             }
-            _ => panic!("attempted to sign non-ethereum currency with ethereum algos "),
+            other => {
+                let cause = err_msg("attempted to sign non-ethereum currency with ethereum algos");
+                let error = ValidationError::UnsupportedCurrency { value: other.to_string() };
+                Err(ectx!(try err cause, ErrorKind::InvalidUnsignedTransaction(error)))?
+            }
         };
         let data = match currency {
             Currency::Eth => Vec::new(),
             Currency::Stq => {
                 let mut data: Vec<u8> = Vec::new();
-                let method = hex_to_bytes(self.stq_transfer_from_method_number.clone())?;
-                let from = serialize_address(from)?;
-                let to = serialize_address(to)?;
+                let method = hex_to_bytes(self.stq_transfer_from_method_number.clone()).map_err({
+                    ectx!(try ErrorContext::MalformedMethodNumber, ErrorKind::Internal => self.stq_transfer_from_method_number.clone())
+                })?;
+                let from = serialize_address(from.clone()).map_err({
+                    let error = ValidationError::MalformedAddress { value: from.into_inner() };
+                    ectx!(try ErrorKind::InvalidUnsignedTransaction(error))
+                })?;
+                let to = serialize_address(to.clone()).map_err({
+                    let error = ValidationError::MalformedAddress { value: to.into_inner() };
+                    ectx!(try ErrorKind::InvalidUnsignedTransaction(error))
+                })?;
                 let value = serialize_amount(value);
                 data.extend(method.iter());
                 data.extend(from.iter());
@@ -138,7 +168,11 @@ impl BlockchainService for EthereumService {
                 data.extend(value.iter());
                 data
             }
-            _ => panic!("attempted to sign non-ethereum currency with ethereum algos "),
+            other => {
+                let cause = err_msg("attempted to sign non-ethereum currency with ethereum algos");
+                let error = ValidationError::UnsupportedCurrency { value: other.to_string() };
+                Err(ectx!(try err cause, ErrorKind::InvalidUnsignedTransaction(error)))?
+            }
         };
 
         let tx = Transaction {
@@ -159,9 +193,14 @@ impl BlockchainService for EthereumService {
 
 fn private_key_to_secret(key: PrivateKey) -> Result<Secret, Error> {
     let hex_pk = key.clone().into_inner();
-    let bytes = hex_to_bytes(hex_pk)?;
-    Secret::from_slice(&bytes)
-        .ok_or(ectx!(err ErrorKind::MalformedHexString, ErrorContext::PrivateKeyConvert, ErrorKind::MalformedHexString => key))
+    let bytes = hex_to_bytes(hex_pk.clone()).map_err({
+        let error = ValidationError::MalformedPrivateKey { value: hex_pk.clone() };
+        ectx!(try ErrorKind::InvalidPrivateKey(error))
+    })?;
+    Secret::from_slice(&bytes).ok_or({
+        let error = ValidationError::MalformedPrivateKey { value: hex_pk };
+        ErrorKind::InvalidPrivateKey(error).into()
+    })
 }
 
 fn serialize_amount(amount: Amount) -> Vec<u8> {

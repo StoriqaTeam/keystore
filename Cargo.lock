@@ -865,7 +865,7 @@ dependencies = [
 
 [[package]]
 name = "keystore"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "base64 0.9.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitcrypto 0.1.0",

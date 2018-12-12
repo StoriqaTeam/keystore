@@ -73,8 +73,8 @@ impl<E: DbExecutor> TransactionsService for TransactionsServiceImpl<E> {
                         maybe_key.ok_or(ectx!(err ErrorContext::NoWallet, ErrorKind::NotFound => user_id_clone2, blockchain_address_clone, currency_clone))
                     }).and_then(move |key| {
                         signer
-                            .sign(key.private_key, transaction)
-                            .map_err(ectx!(ErrorContext::SigningTransaction, ErrorKind::Internal))
+                            .sign(key.private_key.clone(), transaction.clone())
+                            .map_err(ectx!(convert => key.private_key, transaction))
                     })
             })
         }))
@@ -102,10 +102,11 @@ impl<E: DbExecutor> TransactionsService for TransactionsServiceImpl<E> {
                         maybe_key.ok_or(
                             ectx!(err ErrorContext::NoWallet, ErrorKind::NotFound => user_id_clone2, blockchain_address_clone, currency),
                         )
-                    }).and_then(move |key| {
+                    })
+                    .and_then(move |key| {
                         signer
-                            .approve(key.private_key, input)
-                            .map_err(ectx!(ErrorContext::SigningTransaction, ErrorKind::Internal))
+                            .approve(key.private_key.clone(), input.clone())
+                            .map_err(ectx!(convert => key.private_key, input))
                     })
             })
         }))

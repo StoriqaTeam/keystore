@@ -29,7 +29,6 @@ use blockchain::BlockchainServiceImpl;
 use models::*;
 use prelude::*;
 use repos::{DbExecutorImpl, KeysRepoImpl, UsersRepoImpl};
-use serde_json;
 use services::{AuthServiceImpl, KeysServiceImpl, MetricsServiceImpl, TransactionsServiceImpl};
 
 #[derive(Clone)]
@@ -137,12 +136,14 @@ impl Service for ApiService {
                     debug!("Received request {}", ctx);
 
                     router(ctx, parts.method.into(), parts.uri.path())
-                }).and_then(|resp| {
+                })
+                .and_then(|resp| {
                     let (parts, body) = resp.into_parts();
                     read_body(body)
                         .map_err(ectx!(ErrorSource::Hyper, ErrorKind::Internal))
                         .map(|body| (parts, body))
-                }).map(|(parts, body)| {
+                })
+                .map(|(parts, body)| {
                     debug!(
                         "Sent response with status {}, headers: {:#?}, body: {:?}",
                         parts.status.as_u16(),
@@ -150,7 +151,8 @@ impl Service for ApiService {
                         String::from_utf8(body.clone()).ok()
                     );
                     Response::from_parts(parts, body.into())
-                }).or_else(|e| match e.kind() {
+                })
+                .or_else(|e| match e.kind() {
                     ErrorKind::BadRequest => {
                         log_error(&e);
                         Ok(Response::builder()
@@ -176,14 +178,12 @@ impl Service for ApiService {
                             .unwrap())
                     }
 
-                    ErrorKind::UnprocessableEntity(errors) => {
+                    ErrorKind::UnprocessableEntity(payload) => {
                         log_warn(&e);
-                        let errors =
-                            serde_json::to_string(&errors).unwrap_or(r#"{"message": "unable to serialize validation errors"}"#.to_string());
                         Ok(Response::builder()
                             .status(422)
                             .header("Content-Type", "application/json")
-                            .body(Body::from(errors))
+                            .body(Body::from(payload.to_string()))
                             .unwrap())
                     }
                     ErrorKind::Internal => {
@@ -215,6 +215,7 @@ pub fn start_server(config: Config) {
                     .map_err(ectx!(ErrorSource::Hyper, ErrorKind::Internal => addr));
                 info!("Listening on http://{}", addr);
                 server
-            }).map_err(|e: Error| log_error(&e))
+            })
+            .map_err(|e: Error| log_error(&e))
     }));
 }

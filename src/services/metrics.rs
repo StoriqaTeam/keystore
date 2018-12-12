@@ -37,12 +37,20 @@ impl<E: DbExecutor> MetricsService for MetricsServiceImpl<E> {
                 let mut failed_derivations_count: u64 = 0;
                 for key in keys {
                     total_keys += 1;
+
+                    let Key {
+                        currency,
+                        private_key,
+                        blockchain_address,
+                        ..
+                    } = key;
+
                     let derived = self_
                         .blockchain_service
-                        .derive_address(key.currency, key.private_key)
-                        .map_err(ectx!(try ErrorKind::Internal))?;
+                        .derive_address(currency.clone(), private_key.clone())
+                        .map_err(ectx!(try ErrorKind::Internal => currency, private_key))?;
 
-                    if key.blockchain_address != derived {
+                    if blockchain_address != derived {
                         failed_derivations_count += 1;
                     }
                 }

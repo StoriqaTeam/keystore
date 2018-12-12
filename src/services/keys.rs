@@ -49,7 +49,8 @@ impl<E: DbExecutor> KeysService for KeysServiceImpl<E> {
                     } else {
                         Ok(user)
                     }
-                }).and_then(move |user| {
+                })
+                .and_then(move |user| {
                     let user_id = user.id.clone();
                     let user_id_clone = user_id.clone();
                     db_executor.execute_transaction(move || {
@@ -75,12 +76,13 @@ impl<E: DbExecutor> KeysService for KeysServiceImpl<E> {
                     } else {
                         Ok(user)
                     }
-                }).and_then(move |user| {
+                })
+                .and_then(move |user| {
                     let owner_id = user.id;
                     let owner_id_clone = owner_id.clone();
                     db_executor.execute(move || {
                         let (private_key, blockchain_address) =
-                            blockchain_service.generate_key(currency).map_err(ectx!(try ErrorKind::Internal))?;
+                            blockchain_service.generate_key(currency).map_err(ectx!(try convert => currency))?;
                         let new_key = NewKey {
                             id,
                             currency,

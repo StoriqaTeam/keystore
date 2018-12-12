@@ -1,38 +1,35 @@
 version: "3"
 
 volumes:
-  bundle-cache:
   keystore-postgres-data:
 networks:
   keystore:
 
 services:
   keystore:
-    build: .
+    entrypoint: [ "sh", "-c", "/utils/wait_for_it.sh db:5432 && diesel migration run && ./target/debug/keystore server" ]
+    build:
+      context: .
+      dockerfile: Dockerfile.local
     image: keystore
-    command: ["bash", "-c", "rm tmp/pids/server.pid; bundle; bundle exec rails s"]
     environment:
-      - DATABASE_URL=postgres://keystore:keystore@db/keystore
-    volumes:
-      - ..:/app
-      - bundle-cache:/usr/local/bundle
+      - DATABASE_URL=postgresql://keystore:keystore@db/keystore
+      - STQ_PAYMENTS_DATABASE_URL=postgresql://keystore:keystore@db/keystore
+      - RUST_LOG=keystore=debug
     ports:
-      - 3000:3000
+      - "8000"
     networks:
       - keystore
     depends_on:
       - db
 
   db:
-    image: postgres:9.6.1
+    image: postgres:10
     environment:
       - POSTGRES_USER=keystore
       - POSTGRES_PASSWORD=keystore
       - POSTGRES_DB=keystore
     volumes:
       - keystore-postgres-data:/var/lib/postgresql/data
-      - .:/app
     networks:
       - keystore
-    ports:
-      - 5432:5432

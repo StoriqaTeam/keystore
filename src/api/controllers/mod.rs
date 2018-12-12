@@ -45,7 +45,8 @@ impl Context {
                 } else {
                     None
                 }
-            }).map(|t| AuthenticationToken::new(t))
+            })
+            .map(|t| AuthenticationToken::new(t))
     }
 }
 

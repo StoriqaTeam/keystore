@@ -120,5 +120,6 @@ pub fn decode_hex(hex_str: &str) -> Vec<u8> {
             hex.push(chunk[0].into());
             hex.push(chunk[1].into());
             u8::from_str_radix(&hex, 16).unwrap()
-        }).collect()
+        })
+        .collect()
 }

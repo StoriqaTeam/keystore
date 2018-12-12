@@ -2,6 +2,7 @@ use diesel::deserialize::{self, FromSql};
 use diesel::pg::Pg;
 use diesel::serialize::{self, IsNull, Output, ToSql};
 use diesel::sql_types::VarChar;
+use std::fmt;
 use std::io::Write;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, FromSqlRow, AsExpression, Clone, Copy)]
@@ -13,6 +14,16 @@ pub enum Currency {
     Btc,
 }
 
+impl fmt::Display for Currency {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Currency::Eth => f.write_str("eth"),
+            Currency::Stq => f.write_str("stq"),
+            Currency::Btc => f.write_str("btc"),
+        }
+    }
+}
+
 impl FromSql<VarChar, Pg> for Currency {
     fn from_sql(data: Option<&[u8]>) -> deserialize::Result<Self> {
         match data {
@@ -22,7 +33,8 @@ impl FromSql<VarChar, Pg> for Currency {
             Some(v) => Err(format!(
                 "Unrecognized enum variant: {:?}",
                 String::from_utf8(v.to_vec()).unwrap_or("Non - UTF8 value".to_string())
-            ).to_string()
+            )
+            .to_string()
             .into()),
             None => Err("Unexpected null for non-null column".into()),
         }

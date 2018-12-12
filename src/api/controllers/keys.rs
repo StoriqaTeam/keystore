@@ -23,20 +23,23 @@ pub fn get_keys(ctx: &Context, user_id: UserId) -> ControllerFuture {
                     let e = format_err!("{}", e);
                     ectx!(err e, ErrorContext::RequestQueryParams, ErrorKind::BadRequest => path_and_query_clone)
                 })
-            }).into_future()
+            })
+            .into_future()
             .and_then(move |input| {
                 let input_clone = input.clone();
                 keys_service
                     .list(maybe_token, user_id, input.offset, input.limit)
                     .map_err(ectx!(convert => input_clone))
-            }).and_then(|keys| {
+            })
+            .and_then(|keys| {
                 let keys: Vec<KeyResponse> = keys
                     .iter()
                     .map(|key| KeyResponse {
                         id: key.id.clone(),
                         blockchain_address: key.blockchain_address.clone(),
                         currency: key.currency,
-                    }).collect();
+                    })
+                    .collect();
                 response_with_model(&keys)
             }),
     )
@@ -52,7 +55,8 @@ pub fn post_keys(ctx: &Context, user_id: UserId) -> ControllerFuture {
                 keys_service
                     .create(maybe_token, user_id, input.currency, input.id)
                     .map_err(ectx!(convert => input_clone))
-            }).and_then(|key| {
+            })
+            .and_then(|key| {
                 let Key {
                     blockchain_address,
                     currency,

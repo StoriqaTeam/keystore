@@ -62,7 +62,7 @@ pub struct ApproveInput {
     pub nonce: u64,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct Utxo {
     pub tx_hash: String,
