@@ -100,10 +100,9 @@ impl BitcoinService {
         let maybe_sum_inputs = utxos
             .iter()
             .fold(Some(Amount::new(0)), |acc, utxo| acc.and_then(|a| a.checked_add(utxo.value)));
-        let sum_inputs = maybe_sum_inputs.and_then(|sum| sum.u64()).ok_or(ErrorKind::Internal {
-            error: InternalError::Overflow,
-            source: None,
-        })?;
+        let sum_inputs = maybe_sum_inputs
+            .and_then(|sum| sum.u64())
+            .ok_or(ectx!(try err ErrorContext::Overflow, ErrorKind::Internal))?;
         // Need to be strictly greater since we need to include fees as well
         if sum_inputs <= output.value {
             return Err(ErrorKind::InvalidUnsignedTransaction(ValidationError::NotEnoughUtxo).into());
@@ -129,7 +128,7 @@ impl BitcoinService {
             let output_ref = tx
                 .outputs
                 .get_mut(outputs_len - 1)
-                .expect("At least one output should always be in outputs");
+                .ok_or(ectx!(try err ErrorContext::NoTxOutputs, ErrorKind::Internal))?;
             if fees >= output_ref.value {
                 return Err(ErrorKind::InvalidUnsignedTransaction(ValidationError::NotEnoughUtxo).into());
             }
@@ -167,7 +166,7 @@ impl BitcoinService {
 
         let signature = keypair.private().sign(&tx_hash).map_err::<Error, _>(|cause| {
             let cause = err_msg(cause.to_string());
-            ectx!(err cause, ErrorKind::Internal { error: InternalError::Signature, source: None })
+            ectx!(err cause, ErrorContext::Signature, ErrorKind::Internal => tx_hash)
         })?;
         let mut signature_with_sighash = signature.to_vec();
         // SIGHASH_ALL
@@ -239,7 +238,7 @@ impl BlockchainService for BitcoinService {
         let random = Random::new(network);
         let keypair = random.generate().map_err(|e| {
             let e = format_err!("{}", e);
-            ectx!(try err e, ErrorKind::Internal { error: InternalError::Random, source: Some(ErrorSource::Random) })
+            ectx!(try err e, ErrorSource::Random, ErrorKind::Internal)
         })?;
         let address = BlockchainAddress::new(format!("{}", keypair.address()));
         let pk_bytes = bytes_to_hex(&keypair.private().layout());
@@ -261,10 +260,9 @@ impl BitcoinService {
 
         for utxo in utxos.iter().rev() {
             res.push(utxo.clone());
-            sum = sum.checked_add(utxo.value).ok_or(ErrorKind::Internal {
-                error: InternalError::Overflow,
-                source: None,
-            })?;
+            sum = sum
+                .checked_add(utxo.value)
+                .ok_or(ectx!(try err ErrorContext::Overflow, ErrorKind::Internal => sum, utxo.value))?;
             if sum >= value {
                 return Ok(Some(res));
             }

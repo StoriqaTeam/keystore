@@ -3,7 +3,7 @@ use std::sync::Arc;
 use super::auth::AuthService;
 use super::error::*;
 use super::ServiceFuture;
-use blockchain::{BlockchainService, ErrorKind as BlockchainErrorKind};
+use blockchain::BlockchainService;
 use models::*;
 use prelude::*;
 use repos::{DbExecutor, KeysRepo, UsersRepo};
@@ -73,10 +73,8 @@ impl<E: DbExecutor> TransactionsService for TransactionsServiceImpl<E> {
                         maybe_key.ok_or(ectx!(err ErrorContext::NoWallet, ErrorKind::NotFound => user_id_clone2, blockchain_address_clone, currency_clone))
                     }).and_then(move |key| {
                         signer
-                            .sign(key.private_key, transaction).map_err(|e| match e.kind() {
-                                BlockchainErrorKind::InvalidUnsignedTransaction(_) => ectx!(convert err e),
-                                _ => ectx!(err e, ErrorContext::SigningTransaction, ErrorKind::Internal),
-                            })
+                            .sign(key.private_key.clone(), transaction.clone())
+                            .map_err(ectx!(convert => key.private_key, transaction))
                     })
             })
         }))
@@ -106,10 +104,9 @@ impl<E: DbExecutor> TransactionsService for TransactionsServiceImpl<E> {
                         )
                     })
                     .and_then(move |key| {
-                        signer.approve(key.private_key, input).map_err(|e| match e.kind() {
-                            BlockchainErrorKind::InvalidUnsignedTransaction(_) => ectx!(convert err e),
-                            _ => ectx!(err e, ErrorContext::SigningTransaction, ErrorKind::Internal),
-                        })
+                        signer
+                            .approve(key.private_key.clone(), input.clone())
+                            .map_err(ectx!(convert => key.private_key, input))
                     })
             })
         }))

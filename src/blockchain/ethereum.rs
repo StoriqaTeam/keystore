@@ -56,9 +56,7 @@ impl BlockchainService for EthereumService {
     }
     fn generate_key(&self, _currency: Currency) -> Result<(PrivateKey, BlockchainAddress), Error> {
         let mut random = Random;
-        let pair = random
-            .generate()
-            .map_err(ectx!(try ErrorKind::Internal { error: InternalError::Random, source: Some(ErrorSource::Random) }))?;
+        let pair = random.generate().map_err(ectx!(try ErrorSource::Random, ErrorKind::Internal))?;
         let private_key = PrivateKey::new(format!("{:x}", pair.secret()));
         let blockchain_address = BlockchainAddress::new(format!("{:x}", pair.address()));
         Ok((private_key, blockchain_address))
@@ -76,20 +74,13 @@ impl BlockchainService for EthereumService {
         let gas_price: U256 = Amount::new(fee_price as u128).into();
         let gas: U256 = self.stq_gas_limit.into();
         let tx_value: U256 = 0.into();
-        let to = H160::from_str(&self.stq_contract_address).map_err(ectx!(try ErrorKind::Internal {
-            error: InternalError::MalformedStqContractAddress { value: self.stq_contract_address.clone() },
-            source: None,
-        }))?;
+        let to = H160::from_str(&self.stq_contract_address).map_err(ectx!(try ErrorKind::Internal => self.stq_contract_address))?;
         let action = Action::Call(to);
         let mut data: Vec<u8> = Vec::new();
-        let method = hex_to_bytes(self.stq_approve_method_number.clone()).map_err(ectx!(try ErrorKind::Internal {
-            error: InternalError::MalformedMethodNumber { value: self.stq_approve_method_number.clone() },
-            source: None,
-        }))?;
-        let approve_address = serialize_address(approve_address).map_err(ectx!(try ErrorKind::Internal {
-            error: InternalError::Serialization,
-            source: Some(ErrorSource::Serde),
-        }))?;
+        let method = hex_to_bytes(self.stq_approve_method_number.clone())
+            .map_err(ectx!(try ErrorContext::MalformedMethodNumber, ErrorKind::Internal => self.stq_approve_method_number))?;
+        let approve_address =
+            serialize_address(approve_address.clone()).map_err(ectx!(try ErrorSource::Serde, ErrorKind::Internal => approve_address))?;
         let value = serialize_amount(value);
         data.extend(method.iter());
         data.extend(approve_address.iter());
@@ -143,12 +134,9 @@ impl BlockchainService for EthereumService {
                 Action::Call(to)
             }
             Currency::Stq => {
-                let to = H160::from_str(&self.stq_contract_address).map_err({
-                    let error = InternalError::MalformedStqContractAddress {
-                        value: self.stq_contract_address.clone(),
-                    };
-                    ectx!(try ErrorKind::Internal { error, source: None })
-                })?;
+                let to = H160::from_str(&self.stq_contract_address).map_err(
+                    ectx!(try ErrorContext::MalformedStqContractAddress, ErrorKind::Internal => self.stq_contract_address.clone()),
+                )?;
                 Action::Call(to)
             }
             other => {
@@ -162,10 +150,7 @@ impl BlockchainService for EthereumService {
             Currency::Stq => {
                 let mut data: Vec<u8> = Vec::new();
                 let method = hex_to_bytes(self.stq_transfer_from_method_number.clone()).map_err({
-                    let error = InternalError::MalformedMethodNumber {
-                        value: self.stq_transfer_from_method_number.clone(),
-                    };
-                    ectx!(try ErrorKind::Internal { error, source: None })
+                    ectx!(try ErrorContext::MalformedMethodNumber, ErrorKind::Internal => self.stq_transfer_from_method_number.clone())
                 })?;
                 let from = serialize_address(from.clone()).map_err({
                     let error = ValidationError::MalformedAddress { value: from.into_inner() };

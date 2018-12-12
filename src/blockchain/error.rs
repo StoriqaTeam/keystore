@@ -11,7 +11,7 @@ pub struct Error {
 #[derive(Clone, Debug, Fail, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ErrorKind {
     #[fail(display = "blockchain error - internal")]
-    Internal { error: InternalError, source: Option<ErrorSource> },
+    Internal,
     #[fail(display = "blockchain error - validation")]
     Validation(ValidationError),
     #[fail(display = "blockchain error - invalid private key")]
@@ -22,19 +22,17 @@ pub enum ErrorKind {
 
 #[allow(dead_code)]
 #[derive(Clone, Debug, Fail, PartialEq, Eq, Serialize, Deserialize)]
-pub enum InternalError {
+pub enum ErrorContext {
     #[fail(display = "malformed method number")]
-    MalformedMethodNumber { value: String },
+    MalformedMethodNumber,
     #[fail(display = "malformed STQ contract address")]
-    MalformedStqContractAddress { value: String },
+    MalformedStqContractAddress,
     #[fail(display = "overflow")]
     Overflow,
-    #[fail(display = "error generating random number")]
-    Random,
-    #[fail(display = "serialization error")]
-    Serialization,
     #[fail(display = "error signing message")]
     Signature,
+    #[fail(display = "no transaction outputs")]
+    NoTxOutputs,
 }
 
 #[allow(dead_code)]
