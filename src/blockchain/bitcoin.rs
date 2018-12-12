@@ -75,7 +75,8 @@ impl BitcoinService {
                     sequence,
                     script_witness: vec![],
                 })
-            }).collect();
+            })
+            .collect();
         let inputs = inputs?;
         let to_address = input_tx.to.clone().into_inner();
         let address_to = to_address.parse::<Address>().map_err::<Error, _>(|cause| {

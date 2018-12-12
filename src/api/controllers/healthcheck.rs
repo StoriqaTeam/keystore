@@ -9,6 +9,7 @@ pub fn get_healthcheck(_ctx: &Context) -> ControllerFuture {
             .status(200)
             .header("Content-Type", "application/json")
             .body(Body::from(r#""Ok""#))
-            .unwrap()).into_future(),
+            .unwrap())
+        .into_future(),
     )
 }

@@ -104,7 +104,8 @@ impl<E: DbExecutor> TransactionsService for TransactionsServiceImpl<E> {
                         maybe_key.ok_or(
                             ectx!(err ErrorContext::NoWallet, ErrorKind::NotFound => user_id_clone2, blockchain_address_clone, currency),
                         )
-                    }).and_then(move |key| {
+                    })
+                    .and_then(move |key| {
                         signer.approve(key.private_key, input).map_err(|e| match e.kind() {
                             BlockchainErrorKind::InvalidUnsignedTransaction(_) => ectx!(convert err e),
                             _ => ectx!(err e, ErrorContext::SigningTransaction, ErrorKind::Internal),
