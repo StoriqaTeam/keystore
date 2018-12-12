@@ -23,6 +23,5 @@ pub fn hex_to_bytes(hex: String) -> Result<Vec<u8>, Error> {
                 let error = ValidationError::MalformedHexString { value: hex.clone() };
                 ectx!(ErrorKind::Validation(error))
             })
-        })
-        .collect()
+        }).collect()
 }

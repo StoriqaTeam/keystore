@@ -50,8 +50,7 @@ impl BlockchainService for EthereumService {
                         value: key.clone().into_inner(),
                     };
                     ectx!(try ErrorKind::Validation(error))
-                })?
-                .address()
+                })?.address()
         )))
     }
     fn generate_key(&self, _currency: Currency) -> Result<(PrivateKey, BlockchainAddress), Error> {

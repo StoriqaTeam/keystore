@@ -33,8 +33,7 @@ impl FromSql<VarChar, Pg> for Currency {
             Some(v) => Err(format!(
                 "Unrecognized enum variant: {:?}",
                 String::from_utf8(v.to_vec()).unwrap_or("Non - UTF8 value".to_string())
-            )
-            .to_string()
+            ).to_string()
             .into()),
             None => Err("Unexpected null for non-null column".into()),
         }
