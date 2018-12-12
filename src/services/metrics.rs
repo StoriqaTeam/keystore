@@ -40,7 +40,7 @@ impl<E: DbExecutor> MetricsService for MetricsServiceImpl<E> {
                     let derived = self_
                         .blockchain_service
                         .derive_address(key.currency, key.private_key)
-                        .map_err(ectx!(try convert))?;
+                        .map_err(ectx!(try ErrorKind::Internal))?;
 
                     if key.blockchain_address != derived {
                         failed_derivations_count += 1;

@@ -74,7 +74,7 @@ impl<E: DbExecutor> TransactionsService for TransactionsServiceImpl<E> {
                     }).and_then(move |key| {
                         signer
                             .sign(key.private_key, transaction)
-                            .map_err(ectx!(convert ErrorContext::SigningTransaction))
+                            .map_err(ectx!(ErrorContext::SigningTransaction, ErrorKind::Internal))
                     })
             })
         }))
@@ -105,7 +105,7 @@ impl<E: DbExecutor> TransactionsService for TransactionsServiceImpl<E> {
                     }).and_then(move |key| {
                         signer
                             .approve(key.private_key, input)
-                            .map_err(ectx!(convert ErrorContext::SigningTransaction))
+                            .map_err(ectx!(ErrorContext::SigningTransaction, ErrorKind::Internal))
                     })
             })
         }))
