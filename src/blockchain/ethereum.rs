@@ -49,7 +49,7 @@ impl BlockchainService for EthereumService {
                     let error = ValidationError::MalformedPrivateKey {
                         value: key.clone().into_inner(),
                     };
-                    ectx!(try ErrorKind::Validation(error))
+                    ectx!(try ErrorKind::InvalidPrivateKey(error))
                 })?.address()
         )))
     }
@@ -118,7 +118,7 @@ impl BlockchainService for EthereumService {
             nonce: maybe_nonce,
             ..
         } = tx;
-        let nonce = maybe_nonce.ok_or(ErrorKind::Validation(ValidationError::MissingNonce))?;
+        let nonce = maybe_nonce.ok_or(ErrorKind::InvalidUnsignedTransaction(ValidationError::MissingNonce))?;
         let nonce: U256 = nonce.into();
         let gas_price: U256 = Amount::new(fee_price as u128).into();
         let gas: U256 = self.stq_gas_limit.into();
@@ -128,7 +128,7 @@ impl BlockchainService for EthereumService {
             other => {
                 let cause = err_msg("attempted to sign non-ethereum currency with ethereum algos");
                 let error = ValidationError::UnsupportedCurrency { value: other.to_string() };
-                Err(ectx!(try err cause, ErrorKind::Validation(error)))?
+                Err(ectx!(try err cause, ErrorKind::InvalidUnsignedTransaction(error)))?
             }
         };
         let action = match currency {
@@ -137,7 +137,7 @@ impl BlockchainService for EthereumService {
                     let error = ValidationError::MalformedHexString {
                         value: to.clone().into_inner(),
                     };
-                    ectx!(try ErrorKind::Validation(error))
+                    ectx!(try ErrorKind::InvalidUnsignedTransaction(error))
                 })?;
                 Action::Call(to)
             }
@@ -153,7 +153,7 @@ impl BlockchainService for EthereumService {
             other => {
                 let cause = err_msg("attempted to sign non-ethereum currency with ethereum algos");
                 let error = ValidationError::UnsupportedCurrency { value: other.to_string() };
-                Err(ectx!(try err cause, ErrorKind::Validation(error)))?
+                Err(ectx!(try err cause, ErrorKind::InvalidUnsignedTransaction(error)))?
             }
         };
         let data = match currency {
@@ -168,11 +168,11 @@ impl BlockchainService for EthereumService {
                 })?;
                 let from = serialize_address(from.clone()).map_err({
                     let error = ValidationError::MalformedAddress { value: from.into_inner() };
-                    ectx!(try ErrorKind::Validation(error))
+                    ectx!(try ErrorKind::InvalidUnsignedTransaction(error))
                 })?;
                 let to = serialize_address(to.clone()).map_err({
                     let error = ValidationError::MalformedAddress { value: to.into_inner() };
-                    ectx!(try ErrorKind::Validation(error))
+                    ectx!(try ErrorKind::InvalidUnsignedTransaction(error))
                 })?;
                 let value = serialize_amount(value);
                 data.extend(method.iter());
@@ -184,7 +184,7 @@ impl BlockchainService for EthereumService {
             other => {
                 let cause = err_msg("attempted to sign non-ethereum currency with ethereum algos");
                 let error = ValidationError::UnsupportedCurrency { value: other.to_string() };
-                Err(ectx!(try err cause, ErrorKind::Validation(error)))?
+                Err(ectx!(try err cause, ErrorKind::InvalidUnsignedTransaction(error)))?
             }
         };
 
@@ -208,11 +208,11 @@ fn private_key_to_secret(key: PrivateKey) -> Result<Secret, Error> {
     let hex_pk = key.clone().into_inner();
     let bytes = hex_to_bytes(hex_pk.clone()).map_err({
         let error = ValidationError::MalformedPrivateKey { value: hex_pk.clone() };
-        ectx!(try ErrorKind::Validation(error))
+        ectx!(try ErrorKind::InvalidPrivateKey(error))
     })?;
     Secret::from_slice(&bytes).ok_or({
         let error = ValidationError::MalformedPrivateKey { value: hex_pk };
-        ErrorKind::Validation(error).into()
+        ErrorKind::InvalidPrivateKey(error).into()
     })
 }
 

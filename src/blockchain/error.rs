@@ -14,6 +14,10 @@ pub enum ErrorKind {
     Internal { error: InternalError, source: Option<ErrorSource> },
     #[fail(display = "blockchain error - validation")]
     Validation(ValidationError),
+    #[fail(display = "blockchain error - invalid private key")]
+    InvalidPrivateKey(ValidationError),
+    #[fail(display = "blockchain error - invalid unsigned transaction")]
+    InvalidUnsignedTransaction(ValidationError),
 }
 
 #[allow(dead_code)]

@@ -32,25 +32,25 @@ impl BitcoinService {
             let error = ValidationError::Overflow {
                 number: input_tx.value.inner().to_string(),
             };
-            ErrorKind::Validation(error).into()
+            ErrorKind::InvalidUnsignedTransaction(error).into()
         })?;
 
         let (input_utxos, amount) = (input_tx.utxos.clone().unwrap_or_default(), input_tx.value);
         let utxos = self
             .needed_utxos(&input_utxos, amount)?
-            .ok_or::<Error>(ErrorKind::Validation(ValidationError::NotEnoughUtxo).into())?;
+            .ok_or::<Error>(ErrorKind::InvalidUnsignedTransaction(ValidationError::NotEnoughUtxo).into())?;
 
         let from_address = input_tx.from.clone().into_inner();
         let address_from: Address = from_address.parse().map_err::<Error, _>(|cause: BtcKeyError| {
             let cause = format_err!("{}", cause);
             let error = ValidationError::MalformedAddress { value: from_address };
-            ectx!(err cause, ErrorKind::Validation(error))
+            ectx!(err cause, ErrorKind::InvalidUnsignedTransaction(error))
         })?;
         if address_from.kind != AddressType::P2PKH {
             let error = ValidationError::UnsupportedAddressType {
                 value: String::from("P2SH"),
             };
-            return Err(ErrorKind::Validation(error).into());
+            return Err(ErrorKind::InvalidUnsignedTransaction(error).into());
         }
         let address_from_hash = address_from.hash;
         let script_sig = ScriptBuilder::build_p2pkh(&address_from_hash);
@@ -61,7 +61,7 @@ impl BitcoinService {
                 let Utxo { tx_hash, index, .. } = utxo;
                 let tx_hash = tx_hash.parse::<H256>().map_err::<Error, _>(|cause| {
                     let error = ValidationError::MalformedHexString { value: tx_hash.clone() };
-                    ectx!(err cause, ErrorKind::Validation(error))
+                    ectx!(err cause, ErrorKind::InvalidUnsignedTransaction(error))
                 })?;
                 let tx_hash = tx_hash.reversed();
                 let outpoint = OutPoint {
@@ -81,7 +81,7 @@ impl BitcoinService {
         let address_to = to_address.parse::<Address>().map_err::<Error, _>(|cause| {
             let cause = err_msg(cause.to_string());
             let error = ValidationError::MalformedAddress { value: to_address };
-            ectx!(err cause, ErrorKind::Validation(error))
+            ectx!(err cause, ErrorKind::InvalidUnsignedTransaction(error))
         })?;
 
         let address_to_hash = address_to.hash;
@@ -105,7 +105,7 @@ impl BitcoinService {
         })?;
         // Need to be strictly greater since we need to include fees as well
         if sum_inputs <= output.value {
-            return Err(ErrorKind::Validation(ValidationError::NotEnoughUtxo).into());
+            return Err(ErrorKind::InvalidUnsignedTransaction(ValidationError::NotEnoughUtxo).into());
         };
         let rest = sum_inputs - output.value;
         let script = ScriptBuilder::build_p2pkh(&address_from_hash);
@@ -130,7 +130,7 @@ impl BitcoinService {
                 .get_mut(outputs_len - 1)
                 .expect("At least one output should always be in outputs");
             if fees >= output_ref.value {
-                return Err(ErrorKind::Validation(ValidationError::NotEnoughUtxo).into());
+                return Err(ErrorKind::InvalidUnsignedTransaction(ValidationError::NotEnoughUtxo).into());
             }
             output_ref.value -= fees;
         };
@@ -145,7 +145,7 @@ impl BitcoinService {
             let error = ValidationError::MalformedPrivateKey {
                 value: key.clone().into_inner(),
             };
-            ectx!(err cause, ErrorKind::Validation(error))
+            ectx!(err cause, ErrorKind::InvalidPrivateKey(error))
         })?;
 
         let pk = BtcPrivateKey::from_layout(&pk).map_err::<Error, _>(|cause| {
@@ -153,7 +153,7 @@ impl BitcoinService {
             let error = ValidationError::MalformedPrivateKey {
                 value: key.clone().into_inner(),
             };
-            ectx!(err cause, ErrorKind::Validation(error))
+            ectx!(err cause, ErrorKind::InvalidPrivateKey(error))
         })?;
 
         let keypair = KeyPair::from_private(pk).map_err::<Error, _>(|cause| {
@@ -161,7 +161,7 @@ impl BitcoinService {
             let error = ValidationError::MalformedPrivateKey {
                 value: key.clone().into_inner(),
             };
-            ectx!(err cause, ErrorKind::Validation(error))
+            ectx!(err cause, ErrorKind::InvalidPrivateKey(error))
         })?;
 
         let signature = keypair.private().sign(&tx_hash).map_err::<Error, _>(|cause| {
@@ -202,21 +202,21 @@ impl BlockchainService for BitcoinService {
             let error = ValidationError::MalformedPrivateKey {
                 value: key.clone().into_inner(),
             };
-            ectx!(err cause, ErrorKind::Validation(error))
+            ectx!(err cause, ErrorKind::InvalidPrivateKey(error))
         })?;
         let private: BtcPrivateKey = BtcPrivateKey::from_layout(&key_bytes).map_err::<Error, _>(|cause| {
             let cause = err_msg(cause.to_string());
             let error = ValidationError::MalformedPrivateKey {
                 value: key.clone().into_inner(),
             };
-            ectx!(err cause, ErrorKind::Validation(error))
+            ectx!(err cause, ErrorKind::InvalidPrivateKey(error))
         })?;
         let keypair = KeyPair::from_private(private).map_err::<Error, _>(|cause| {
             let cause = err_msg(cause.to_string());
             let error = ValidationError::MalformedPrivateKey {
                 value: key.clone().into_inner(),
             };
-            ectx!(err cause, ErrorKind::Validation(error))
+            ectx!(err cause, ErrorKind::InvalidPrivateKey(error))
         })?;
         Ok(BlockchainAddress::new(format!("{}", keypair.address())))
     }

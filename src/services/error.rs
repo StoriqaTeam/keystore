@@ -81,6 +81,8 @@ impl From<BlockchainErrorKind> for ErrorKind {
     fn from(e: BlockchainErrorKind) -> ErrorKind {
         match e {
             BlockchainErrorKind::Internal { .. } => ErrorKind::Internal,
+            BlockchainErrorKind::InvalidPrivateKey(error) => ErrorKind::Validation(ValidationError::Blockchain(error)),
+            BlockchainErrorKind::InvalidUnsignedTransaction(error) => ErrorKind::Validation(ValidationError::Blockchain(error)),
             BlockchainErrorKind::Validation(error) => ErrorKind::Validation(ValidationError::Blockchain(error)),
         }
     }
