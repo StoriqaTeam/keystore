@@ -32,6 +32,7 @@ pub struct Database {
 #[derive(Debug, Deserialize, Clone)]
 pub struct Blockchain {
     pub stq_gas_limit: usize,
+    pub eth_gas_limit: usize,
     pub stq_contract_address: String,
     pub stq_approve_method_number: String,
     pub stq_transfer_from_method_number: String,

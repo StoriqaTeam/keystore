@@ -30,6 +30,7 @@ pub struct BlockchainServiceImpl {
 impl BlockchainServiceImpl {
     pub fn new(
         stq_gas_limit: usize,
+        eth_gas_limit: usize,
         stq_contract_address: String,
         stq_transfer_from_method_number: String,
         stq_approve_method_number: String,
@@ -38,6 +39,7 @@ impl BlockchainServiceImpl {
     ) -> Self {
         let ethereum_service = EthereumService::new(
             stq_gas_limit,
+            eth_gas_limit,
             stq_contract_address,
             stq_transfer_from_method_number,
             stq_approve_method_number,

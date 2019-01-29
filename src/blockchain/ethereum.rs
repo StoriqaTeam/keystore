@@ -15,6 +15,7 @@ use prelude::*;
 #[derive(Default)]
 pub struct EthereumService {
     stq_gas_limit: usize,
+    eth_gas_limit: usize,
     stq_contract_address: String,
     stq_transfer_from_method_number: String,
     stq_approve_method_number: String,
@@ -24,6 +25,7 @@ pub struct EthereumService {
 impl EthereumService {
     pub fn new(
         stq_gas_limit: usize,
+        eth_gas_limit: usize,
         stq_contract_address: String,
         stq_transfer_from_method_number: String,
         stq_approve_method_number: String,
@@ -31,6 +33,7 @@ impl EthereumService {
     ) -> Self {
         EthereumService {
             stq_gas_limit,
+            eth_gas_limit,
             stq_contract_address,
             stq_transfer_from_method_number,
             stq_approve_method_number,
@@ -114,7 +117,15 @@ impl BlockchainService for EthereumService {
         let nonce = maybe_nonce.ok_or(ErrorKind::InvalidUnsignedTransaction(ValidationError::MissingNonce))?;
         let nonce: U256 = nonce.into();
         let gas_price: U256 = Amount::new(fee_price as u128).into();
-        let gas: U256 = self.stq_gas_limit.into();
+        let gas: U256 = match currency {
+            Currency::Eth => self.eth_gas_limit.into(),
+            Currency::Stq => self.stq_gas_limit.into(),
+            other => {
+                let cause = err_msg("attempted to sign non-ethereum currency with ethereum algos");
+                let error = ValidationError::UnsupportedCurrency { value: other.to_string() };
+                Err(ectx!(try err cause, ErrorKind::InvalidUnsignedTransaction(error)))?
+            }
+        };
         let tx_value: U256 = match currency {
             Currency::Eth => value.into(),
             Currency::Stq => 0.into(),
@@ -230,6 +241,7 @@ mod tests {
     fn test_sign() {
         let ethereum_service = EthereumService {
             stq_gas_limit: 100000,
+            eth_gas_limit: 21000,
             stq_contract_address: "1bf2092a42166b2ae19b7b23752e7d2dab5ba91a".to_string(),
             stq_transfer_from_method_number: "23b872dd".to_string(),
             stq_approve_method_number: "095ea7b3".to_string(),
@@ -278,6 +290,7 @@ mod tests {
     fn test_approve() {
         let ethereum_service = EthereumService {
             stq_gas_limit: 100000,
+            eth_gas_limit: 21000,
             stq_contract_address: "1bf2092a42166b2ae19b7b23752e7d2dab5ba91a".to_string(),
             stq_transfer_from_method_number: "23b872dd".to_string(),
             stq_approve_method_number: "095ea7b3".to_string(),

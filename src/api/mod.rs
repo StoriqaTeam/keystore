@@ -96,6 +96,7 @@ impl Service for ApiService {
                     let auth_service = Arc::new(AuthServiceImpl::new(users_repo.clone(), db_executor.clone()));
                     let blockchain_service = Arc::new(BlockchainServiceImpl::new(
                         config.blockchain.stq_gas_limit.clone(),
+                        config.blockchain.eth_gas_limit.clone(),
                         config.blockchain.stq_contract_address.clone(),
                         config.blockchain.stq_transfer_from_method_number.clone(),
                         config.blockchain.stq_approve_method_number.clone(),
