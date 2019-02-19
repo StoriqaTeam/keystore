@@ -38,7 +38,7 @@ impl BitcoinService {
         let (input_utxos, amount) = (input_tx.utxos.clone().unwrap_or_default(), input_tx.value);
         let utxos = self
             .needed_utxos(&input_utxos, amount)?
-            .ok_or::<Error>(ErrorKind::InvalidUnsignedTransaction(ValidationError::NotEnoughUtxo).into())?;
+            .ok_or(ectx!(try err ErrorContext::WrongInputs, ErrorKind::InvalidUnsignedTransaction(ValidationError::NotEnoughUtxo) => input_utxos, amount))?;
 
         let from_address = input_tx.from.clone().into_inner();
         let address_from: Address = from_address.parse().map_err::<Error, _>(|cause: BtcKeyError| {
@@ -105,7 +105,9 @@ impl BitcoinService {
             .ok_or(ectx!(try err ErrorContext::Overflow, ErrorKind::Internal))?;
         // Need to be strictly greater since we need to include fees as well
         if sum_inputs <= output.value {
-            return Err(ErrorKind::InvalidUnsignedTransaction(ValidationError::NotEnoughUtxo).into());
+            return Err(
+                ectx!(err ErrorContext::WrongInputs, ErrorKind::InvalidUnsignedTransaction(ValidationError::NotEnoughUtxo) => sum_inputs, output.value),
+            );
         };
         let rest = sum_inputs - output.value;
         let script = ScriptBuilder::build_p2pkh(&address_from_hash);
@@ -130,7 +132,9 @@ impl BitcoinService {
                 .get_mut(outputs_len - 1)
                 .ok_or(ectx!(try err ErrorContext::NoTxOutputs, ErrorKind::Internal))?;
             if fees >= output_ref.value {
-                return Err(ErrorKind::InvalidUnsignedTransaction(ValidationError::NotEnoughUtxo).into());
+                return Err(
+                    ectx!(err ErrorContext::WrongFee, ErrorKind::InvalidUnsignedTransaction(ValidationError::NotEnoughUtxo) => tx_raw, fees, output_ref.value),
+                );
             }
             output_ref.value -= fees;
         };
@@ -190,6 +194,7 @@ impl BitcoinService {
         let script_pubkey_size = 3 + 20 + 2;
         let signature_bytes = (script_sig_size - script_pubkey_size) * inputs_count;
         let estimated_final_size = (tx_size + signature_bytes) as f64;
+        println!("fee_price = {}, estimated_final_size = {}", fee_price, estimated_final_size);
         (fee_price * estimated_final_size) as u64
     }
 }
@@ -298,5 +303,38 @@ mod tests {
             .sign_with_options(pk, tx, true, Some(1436452))
             .expect("Failed to sign");
         assert_eq!(raw_tx.into_inner(), "010000000110861bcaae9f83ca9f64a02799415a25184f282c3086aecae9720e92da6be590000000008a473044022065d8c5c83d1262e47447127aec29f78b80bce5cf8702f61679529019cc37bfa502204ca0377bd13ec7445b56e726c143f4da718e4424c2ec9acd68a58255f435992b0141049cd145484ef05dc259326651e942ecfa2c7f64bad3286e94e303eaf9b03edf0a844d63ad58c078e28a183438d0bccc75fd788522069ed79cee71736fade65124fdffffff02a0860100000000001976a9147e7ad15c2aa503c33520dee5bccd7d79ff2b44db88ac47077d00000000001976a914ffcdccfab05fa7df11e279da558d68f80daffc3788ac24eb1500".to_string());
+    }
+    #[test]
+    fn test_sign_fees() {
+        let bitcoin_service = BitcoinService::new(BtcNetwork::Main);
+        let pk = PrivateKey::new("ef13c9b34216f7fbe84787ab9ff78f9fd516a1d72a78f071bfaaad97278fa86b5a9951c8c0".to_string());
+        let tx = UnsignedTransaction {
+            id: TransactionId::default(),
+            from: BlockchainAddress::new("1LooGrNiLscvpggq1AYqS2h3r9CVR4mar1".to_string()),
+            to: BlockchainAddress::new("14QxuxuS9apVWAiSvJx4fCy6dDPRzLVHNL".to_string()),
+            currency: Currency::Btc,
+            value: Amount::new(580520),
+            fee_price: 60.332142857142856,
+            nonce: None,
+            utxos: Some(vec![
+                Utxo {
+                    tx_hash: "9e87538bdc1b83688af82fedb524ca647f102bef6c5b3a09774b5637e7702cc2".to_string(),
+                    value: Amount::new(336474),
+                    index: 1,
+                },
+                Utxo {
+                    tx_hash: "1ef46531bf5da3d49be1458ff855094339ba6ff0e8812be27e4a6b7328d0acaa".to_string(),
+                    value: Amount::new(335456),
+                    index: 1,
+                },
+                Utxo {
+                    tx_hash: "f8cb4a89b5197b4f53c64d75cc93724a925bfa1c7918e5a2468d24a8c0329e2e".to_string(),
+                    value: Amount::new(125483),
+                    index: 1,
+                },
+            ]),
+        };
+        let raw_tx = bitcoin_service.sign_with_options(pk, tx, false, None).expect("Failed to sign");
+        assert_eq!(raw_tx.into_inner(), "0100000002c22c70e737564b77093a5b6cef2b107f64ca24b5ed2ff88a68831bdc8b53879e010000008b483045022100fc86e508d2c4aef3812d93248c31beaddcbaeb8784fdb0cc51b6474fe8ce73aa02203f1804cda08602add7664e47ea9cd68bb94ad0db1c613591db12668dbaf69a7e0141049cd145484ef05dc259326651e942ecfa2c7f64bad3286e94e303eaf9b03edf0a844d63ad58c078e28a183438d0bccc75fd788522069ed79cee71736fade65124ffffffffaaacd028736b4a7ee22b81e8f06fba39430955f88f45e19bd4a35dbf3165f41e010000008b483045022100fc86e508d2c4aef3812d93248c31beaddcbaeb8784fdb0cc51b6474fe8ce73aa02203f1804cda08602add7664e47ea9cd68bb94ad0db1c613591db12668dbaf69a7e0141049cd145484ef05dc259326651e942ecfa2c7f64bad3286e94e303eaf9b03edf0a844d63ad58c078e28a183438d0bccc75fd788522069ed79cee71736fade65124ffffffff02a8db0800000000001976a91425709e51d84c4eb753664a6625c059ff813d5c9c88ac52fe0000000000001976a914d94426b0fa8e42c0a8d0222c6097e8eaf6fada8d88ac00000000".to_string());
     }
 }
