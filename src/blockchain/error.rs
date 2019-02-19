@@ -33,6 +33,10 @@ pub enum ErrorContext {
     Signature,
     #[fail(display = "no transaction outputs")]
     NoTxOutputs,
+    #[fail(display = "wrong fees")]
+    WrongFee,
+    #[fail(display = "wrong inputs")]
+    WrongInputs,
 }
 
 #[allow(dead_code)]
