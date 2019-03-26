@@ -268,12 +268,13 @@ impl BitcoinService {
             sum = sum
                 .checked_add(utxo.value)
                 .ok_or(ectx!(try err ErrorContext::Overflow, ErrorKind::Internal => sum, utxo.value))?;
-            if sum >= value {
-                return Ok(Some(res));
-            }
         }
 
-        Ok(None)
+        if sum >= value {
+            return Ok(Some(res));
+        } else {
+            Ok(None)
+        }
     }
 }
 
